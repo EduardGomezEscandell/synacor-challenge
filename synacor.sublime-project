@@ -1,0 +1,47 @@
+{
+	"folders":
+	[
+		{
+			"path": "~/Code/Synacor",
+			"folder_exclude_patterns" : [
+				".vscode",
+				"__pycache__",
+				".clangd",
+				".github"
+			],
+			"file_exclude_patterns": [
+				"*.sublime-workspace"
+			]
+		}
+	],
+	"build_systems" :
+	[
+		{
+			"name" : "CMake build",
+			"working_dir" : "${project_path}",
+			"file_regex": "\/home\/[a-zA-z0-9/]*\/Synacor\/([^:]*):([0-9]*)",
+		    "shell_cmd": "bash build.sh",
+			"variants" : [
+				{
+					"name" : "Debug",
+					"env" : {
+						"BUILD_TYPE" : "Debug",
+						"ADDRESS_SANITIZER" : "ON"
+					}
+				}
+			]
+		},
+		{
+			"name" : "Run VM",
+			"working_dir" : "${project_path}",
+			"shell_cmd" : "./bin/vm_Release",
+			"variants" : [
+				{
+					"name" : "Debug",
+					"shell_cmd" : "./bin/vm_Debug",
+					"file_regex": "\/home\/[a-zA-z0-9/]*\/Synacor\/([^:]*):([0-9]*)",
+				}
+			]
+		}
+	]
+}

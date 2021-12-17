@@ -1,0 +1,1 @@
+add_executable(synacor_vm main.cpp)
