@@ -26,7 +26,8 @@
 					"name" : "Debug",
 					"env" : {
 						"BUILD_TYPE" : "Debug",
-						"ADDRESS_SANITIZER" : "ON"
+						"ADDRESS_SANITIZER" : "ON",
+						"UB_SANITIZER" : "ON"
 					}
 				}
 			]

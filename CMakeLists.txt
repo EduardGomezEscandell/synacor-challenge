@@ -9,6 +9,10 @@ if(ADDRESS_SANITIZER)
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address")
 endif()
 
+if(UB_SANITIZER)
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=undefined")
+endif()
+
 message("Compiling with: ${CMAKE_CXX_FLAGS}")
 
 add_subdirectory(src)
