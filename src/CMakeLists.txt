@@ -1,1 +1,1 @@
-add_executable(synacor_vm main.cpp)
+add_executable(synacor_vm main.cpp cpu.h)
