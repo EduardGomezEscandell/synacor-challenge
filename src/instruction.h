@@ -1,6 +1,6 @@
 #pragma once
 
-#include "integer.h"
+#include "word.h"
 
 class InstructionData
 {
@@ -29,35 +29,13 @@ public:
         RET,
         OUT,
         IN,
-        NOOP
+        NOOP,
+        BAD_HALT
     };
 
-    constexpr static std::size_t NumberOfArguments(OpCode op)
+    static constexpr OpCode Interpret(Word const& word)
     {
-        switch (op) {
-            case HALT:  return 0;
-            case SET:   return 2;
-            case PUSH:  return 1;
-            case POP:   return 1;
-            case EQ:    return 3;
-            case GT:    return 3;
-            case JMP:   return 2;
-            case JT:    return 2;
-            case JF:    return 2;
-            case ADD:   return 3;
-            case MULT:  return 3;
-            case MOD:   return 3;
-            case AND:   return 3;
-            case OR:    return 3;
-            case NOT:   return 2;
-            case RMEM:  return 2;
-            case WMEM:  return 2;
-            case CALL:  return 1;
-            case RET:   return 0;
-            case OUT:   return 1;
-            case IN:    return 1;
-            case NOOP:  return 0;
-        }
+        return static_cast<OpCode>(word.to_int());
     }
 
 private:

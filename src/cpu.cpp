@@ -10,6 +10,7 @@ void CPU::Run()
 {
 	while(!m_flags.Is(Flags::HALTED))
 	{
+		
 
 		++m_instr_ptr;
 	}

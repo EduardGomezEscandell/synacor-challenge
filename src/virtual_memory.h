@@ -6,7 +6,8 @@
 #include <fstream>
 #include <array>
 
-#include "integer.h"
+#include "word.h"
+#include "address.h"
 
 class Memory
 {
@@ -52,7 +53,7 @@ public:
     };
 
 
-    constexpr Word& operator[](Word ptr)
+    constexpr Word& operator[](Address ptr)
     {
         return dereference(ptr);
     }

@@ -26,8 +26,7 @@
 					"name" : "Debug",
 					"env" : {
 						"BUILD_TYPE" : "Debug",
-						"ADDRESS_SANITIZER" : "ON",
-						"UB_SANITIZER" : "ON"
+						"SANITIZER" : "ON"
 					}
 				}
 			]
@@ -35,12 +34,24 @@
 		{
 			"name" : "Run VM",
 			"working_dir" : "${project_path}",
-			"shell_cmd" : "./bin/vm_Release",
+			"shell_cmd" : "./bin/Release/vm ${file}",
 			"file_patterns": ["*.bin"],
 			"variants" : [
 				{
 					"name" : "Debug",
-					"shell_cmd" : "./bin/vm_Debug ${file}",
+					"shell_cmd" : "./bin/Debug/vm ${file}",
+					"file_regex": "\/home\/[a-zA-z0-9/]*\/Synacor\/([^:]*):([0-9]*)",
+				}
+			]
+		},
+		{
+			"name" : "Test",
+			"working_dir" : "${project_path}",
+			"shell_cmd" : "./bin/Release/run_tests",
+			"variants" : [
+				{
+					"name" : "Debug",
+					"shell_cmd" : "./bin/Debug/run_tests ${file}",
 					"file_regex": "\/home\/[a-zA-z0-9/]*\/Synacor\/([^:]*):([0-9]*)",
 				}
 			]

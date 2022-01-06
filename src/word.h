@@ -4,7 +4,6 @@
 #include <cstdint>
 #include <ostream>
 #include <system_error>
-#include <type_traits>
 
 class Word 
 {
@@ -44,10 +43,15 @@ public:
             return this->get() <=> (other & 0xF);
         }
 
+        constexpr auto operator+=(half_word_t jump) noexcept
+        {
+            this->set(this->get() + jump);
+            return *this;
+        }
+
         constexpr auto operator++() noexcept
         {
-            this->set(this->get() + 1);
-            return *this;
+            return *this += 1;
         }
 
         constexpr auto operator++(int) noexcept
@@ -90,9 +94,17 @@ public:
     constexpr half_word_t get_hi() const noexcept;
 
     constexpr Word operator++() noexcept;
+    constexpr Word operator+=(word_t jump) noexcept;
+    constexpr Word operator+(Word const& other) noexcept;
+
     constexpr std::strong_ordering operator<=>(Word const& other) const noexcept;
 
     constexpr Word flip() const noexcept;
+
+    constexpr word_t to_int() const noexcept
+    {
+        return get_hi() << 8 | get_lo();
+    }
 
 };
 
@@ -147,21 +159,31 @@ constexpr Word::Word(auto in) noexcept
     lo() = (in & 0x0F);
 }
 
-constexpr Word Word::operator++() noexcept
+constexpr Word Word::operator+=(word_t jump) noexcept
 {
-    if((lo() <=> 0xF) == std::strong_ordering::equivalent)
+    const half_word_t jump_lo = jump & 0xF;
+    const half_word_t jump_hi = jump >> 8;
+
+    if((lo() <=> (0xF-jump_lo)) == std::strong_ordering::greater)
     {
-        ++hi();
-        lo() = 0;
+        hi() += 1;
     }
-    else
-    {
-        ++lo();
-    }
+
+    lo() += jump_lo;
+    hi() += jump_hi;
 
     return *this;
 }
 
+constexpr Word Word::operator++() noexcept
+{
+    return (*this) += 1;
+}
+
+constexpr Word Word::operator+(Word const& other) noexcept
+{
+    return (*this) += other.to_int();
+}
 
 constexpr std::strong_ordering Word::operator<=>(Word const& other) const noexcept
 {
@@ -187,53 +209,3 @@ std::ostream& operator<<(std::ostream& os, Word const& in)
     const char ascii = static_cast<char>(in.flip().raw);
     return os << ascii;
 }
-
-
-/**
- * This class exists solely to prevent implicit conversions
- * between literals and adresses
- */
-class Address
-{
-public:
-    constexpr Address() noexcept = default;
-
-    constexpr Address(Word::half_word_t in) noexcept
-    {
-        m_internal.lo() = in;
-    }
-
-    constexpr Address(auto in = 0) noexcept
-    {
-        m_internal = in;
-    }
-
-    constexpr Address(Address const& ptr) noexcept
-    {
-        m_internal.raw = ptr.m_internal.raw;
-    }
-
-    constexpr auto& get() noexcept { return m_internal; }
-    constexpr auto const& get() const noexcept { return m_internal; }
-
-    constexpr auto operator++() noexcept
-    {
-    }
-
-    constexpr auto operator++(int) noexcept
-    {
-        Address const ret = *this;
-
-        ++(*this);
-
-        return ret;
-    }
-
-    constexpr std::strong_ordering operator<=>(Address const& other) const noexcept
-    {
-        return this->m_internal <=> other.m_internal;
-    }
-
-private:
-    Word m_internal = 0;
-};

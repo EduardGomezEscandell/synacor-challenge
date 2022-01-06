@@ -9,7 +9,7 @@ public:
 	{
 		NONE   = 0x00,
 		HALTED = 0x01,
-		PRINT  = 0X02,
+		ERROR  = 0X02,
 		ALL = ~static_cast<flag_storage_t>(0)
 	};
 
