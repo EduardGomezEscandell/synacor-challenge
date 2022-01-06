@@ -35,7 +35,7 @@ public:
 
     static constexpr OpCode Interpret(Word const& word)
     {
-        return static_cast<OpCode>(word.to_int());
+        return static_cast<OpCode>(word.raw());
     }
 
 private:

@@ -9,6 +9,7 @@
 class CPU
 {
 public:
+    void LoadMemory(std::basic_istream<raw_word_t>& source);
     void Initialize();
     void Run();
 

@@ -12,7 +12,7 @@ class Address
 public:
     constexpr Address() noexcept = default;
 
-    constexpr Address(Word::half_word_t in) noexcept
+    constexpr Address(raw_byte_t in) noexcept
     {
         m_internal.lo() = in;
     }
@@ -28,6 +28,7 @@ public:
     }
 
     constexpr Address(Address const& ptr) noexcept = default;
+    constexpr Address& operator=(Address const& ptr) noexcept = default;
 
     constexpr auto& get() noexcept { return m_internal; }
     constexpr auto const& get() const noexcept { return m_internal; }

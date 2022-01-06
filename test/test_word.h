@@ -1,31 +1,26 @@
 #include "doctest/doctest.h"
 #include "word.h"
 
-TEST_CASE("Word -- Proxies")
+TEST_CASE("Word -- bitewise")
 {
     SUBCASE("Low byte")
     {
         Word w;
 
-        auto lo_proxy = w.lo();
-        lo_proxy = 0x35;
+        w.lo() = 0x35;
 
-        CHECK_EQ(lo_proxy.get(), 0x35);
-        CHECK_EQ(w.get_lo(), 0x35);
-        CHECK_EQ(w.raw, 0x3500);
+        CHECK_EQ(w.lo(), 0x35);
+        CHECK_EQ(w.raw(), 0x3500);
         CHECK_EQ(w.to_int(), 0x0035);
     }
 
     SUBCASE("High byte")
     {
         Word w;
+        w.hi() = 0x27;
 
-        auto hi_proxy = w.hi();
-        hi_proxy = 0x27;
-
-        CHECK_EQ(hi_proxy.get(), 0x27);
-        CHECK_EQ(w.get_hi(), 0x27);
-        CHECK_EQ(w.raw, 0x0027);
+        CHECK_EQ(w.hi(), 0x27);
+        CHECK_EQ(w.raw(), 0x0027);
         CHECK_EQ(w.to_int(), 0x2700);
     }
 
@@ -35,9 +30,9 @@ TEST_CASE("Word -- Proxies")
         w.hi() = 0x13;
         w.lo() = 0x47;
 
-        CHECK_EQ(w.get_hi(), 0x13);
-        CHECK_EQ(w.get_lo(), 0x47);
-        CHECK_EQ(w.raw, 0x4713);
+        CHECK_EQ(w.hi(), 0x13);
+        CHECK_EQ(w.lo(), 0x47);
+        CHECK_EQ(w.raw(), 0x4713);
         CHECK_EQ(w.to_int(), 0x1347);
     }
     
@@ -49,9 +44,9 @@ TEST_CASE("Word -- constructors")
     {
         constexpr Word w;
 
-        static_assert(w.to_int() == 0, "Test failed at compile-time!");
+        static_assert(w.raw() == 0, "Test failed at compile-time!");
 
-        CHECK_EQ(w.to_int(), 0);
+        CHECK_EQ(w.raw(), 0);
     }
 
     SUBCASE("From integer")
@@ -73,10 +68,10 @@ TEST_CASE("Word -- constructors")
         static_assert(w2.to_int() == 0xBEEF);
 
         CHECK_EQ(w1.to_int(), 0xBEEF);
-        CHECK_EQ(w1.raw, 0xEFBE);
+        CHECK_EQ(w1.raw(), 0xEFBE);
         
         CHECK_EQ(w2.to_int(), 0xBEEF);
-        CHECK_EQ(w2.raw, 0xEFBE);
+        CHECK_EQ(w2.raw(), 0xEFBE);
     }
 }
 
