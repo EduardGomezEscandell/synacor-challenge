@@ -1,8 +1,8 @@
 add_library(synacor_vm_lib  address.h
-                            cpu.cpp
-                            cpu.h
                             flags.h
                             instruction.h
+                            virtual_machine.h
+                            virtual_machine.cpp
                             virtual_memory.h
                             word.h)
 

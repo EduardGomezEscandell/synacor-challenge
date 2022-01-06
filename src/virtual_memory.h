@@ -17,7 +17,7 @@ class Memory
         [[maybe_unused]] const raw_word_t raw_ptr) const noexcept
     {
 #ifndef DNDEBUG
-        if(raw_ptr > 0 && raw_ptr < address_space) return;
+        if(raw_ptr >= 0 && raw_ptr < address_space) return;
 
         std::cerr << "Invalid access to address " << raw_ptr << std::endl;
         exit(EXIT_FAILURE);
@@ -38,12 +38,12 @@ class Memory
 
     constexpr Word& dereference(const Address ptr)
     {
-        return dereference(ptr.get().raw());
+        return dereference(ptr.get().to_int());
     }
 
     constexpr Word const& dereference(const Address ptr) const
     {
-        return dereference(ptr.get().raw());
+        return dereference(ptr.get().to_int());
     }
 
 
@@ -63,7 +63,7 @@ public:
         }
     };
 
-    constexpr Word& operator[](const Address ptr)
+    constexpr Word& operator[](auto const& ptr)
     {
         return dereference(ptr);
     }

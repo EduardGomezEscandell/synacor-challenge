@@ -6,7 +6,7 @@
 
 #pragma once
 
-class CPU
+class VirtualMachine
 {
 public:
     void LoadMemory(std::basic_istream<raw_word_t>& source);
@@ -26,20 +26,20 @@ private:
 
 
 template<>
-constexpr void CPU::Execute<InstructionData::HALT>()
+constexpr void VirtualMachine::Execute<InstructionData::HALT>()
 {
     m_flags.Set(Flags::HALTED);
 }
 
 template<InstructionData::OpCode TOp>
-constexpr void CPU::Execute()
+constexpr void VirtualMachine::Execute()
 {
     m_flags.Set(Flags::ERROR);
     Execute<InstructionData::HALT>();
 }
 
 template<>
-constexpr void CPU::Execute<InstructionData::SET>()
+constexpr void VirtualMachine::Execute<InstructionData::SET>()
 {
     const auto ptr   = Address(m_memory[m_instr_ptr++]);
     const Word value = m_memory[m_instr_ptr++];
@@ -47,7 +47,7 @@ constexpr void CPU::Execute<InstructionData::SET>()
 }
 
 template<>
-constexpr void CPU::Execute<InstructionData::ADD>()
+constexpr void VirtualMachine::Execute<InstructionData::ADD>()
 {
     const auto p_result = Address(m_memory[m_instr_ptr++]);
     const auto p_sum1   = Address(m_memory[m_instr_ptr++]);
@@ -57,20 +57,20 @@ constexpr void CPU::Execute<InstructionData::ADD>()
 }
 
 template<>
-inline void CPU::Execute<InstructionData::OUT>()
+inline void VirtualMachine::Execute<InstructionData::OUT>()
 {
     std::cout << m_memory[m_instr_ptr++];
     ++m_instr_ptr;
 }
 
 template<>
-constexpr void CPU::Execute<InstructionData::NOOP>()
+constexpr void VirtualMachine::Execute<InstructionData::NOOP>()
 {
     ++m_instr_ptr;
 }
 
 
-constexpr void CPU::ExecuteNextInstruction()
+constexpr void VirtualMachine::ExecuteNextInstruction()
 {
     switch (InstructionData::Interpret(m_memory[m_instr_ptr]))
     {
