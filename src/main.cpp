@@ -21,9 +21,11 @@ int main(int argc, char * argv[])
 
 	VirtualMachine vm;
 
-    auto program = std::basic_ifstream<raw_word_t>(argv[1]);
+    auto program = VirtualMachine::program_file_t(argv[1], std::ios::binary);
 
     vm.LoadMemory(program);
+
+    vm.memory().hex_dump(0, 2);
 
     vm.Initialize();
     vm.Run();

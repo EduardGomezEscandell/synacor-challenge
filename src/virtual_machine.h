@@ -9,9 +9,13 @@
 class VirtualMachine
 {
 public:
-    void LoadMemory(std::basic_istream<raw_word_t>& source);
+    using program_file_t = Memory::program_file_t;
+
+    void LoadMemory(program_file_t& source);
     void Initialize();
     void Run();
+
+    constexpr Memory const& memory() const noexcept {return m_memory; }
 
 private:
     constexpr void ExecuteNextInstruction();

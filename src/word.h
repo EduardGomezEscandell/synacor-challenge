@@ -45,9 +45,21 @@ public:
 
     constexpr Word flip() const noexcept;
 
-    constexpr raw_word_t raw() const noexcept
+    constexpr raw_word_t get_raw() const noexcept
     {
         return (static_cast<raw_word_t>(lo()) << 8) | hi();
+    }
+
+    constexpr void set_raw(raw_word_t inp) noexcept
+    {
+        data[LO] = inp & 0x00FF;
+        data[HI] = inp >> 8;
+    }
+    
+    constexpr void set_raw(raw_byte_t lo, raw_byte_t hi) noexcept
+    {
+        data[LO] = lo;
+        data[HI] = hi;
     }
 
     constexpr raw_word_t to_int() const noexcept
@@ -62,7 +74,7 @@ constexpr Word::Word(raw_byte_t in) noexcept
     lo() = in;
 }
 
-constexpr Word::Word(std::integral  auto in) noexcept
+constexpr Word::Word(std::integral auto in) noexcept
 {
     lo() = (in & 0x00FF);
     hi() = (in >> 8) & 0x00FF;
@@ -122,6 +134,6 @@ constexpr Word Word::flip() const noexcept
 
 inline std::ostream& operator<<(std::ostream& os, Word const& in)
 {
-    const char ascii = static_cast<char>(in.raw());
+    const char ascii = static_cast<char>(in.get_raw());
     return os << ascii;
 }

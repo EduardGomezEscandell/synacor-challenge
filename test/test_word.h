@@ -10,7 +10,7 @@ TEST_CASE("Word -- bitewise")
         w.lo() = 0x35;
 
         CHECK_EQ(w.lo(), 0x35);
-        CHECK_EQ(w.raw(), 0x3500);
+        CHECK_EQ(w.get_raw(), 0x3500);
         CHECK_EQ(w.to_int(), 0x0035);
     }
 
@@ -20,7 +20,7 @@ TEST_CASE("Word -- bitewise")
         w.hi() = 0x27;
 
         CHECK_EQ(w.hi(), 0x27);
-        CHECK_EQ(w.raw(), 0x0027);
+        CHECK_EQ(w.get_raw(), 0x0027);
         CHECK_EQ(w.to_int(), 0x2700);
     }
 
@@ -32,7 +32,7 @@ TEST_CASE("Word -- bitewise")
 
         CHECK_EQ(w.hi(), 0x13);
         CHECK_EQ(w.lo(), 0x47);
-        CHECK_EQ(w.raw(), 0x4713);
+        CHECK_EQ(w.get_raw(), 0x4713);
         CHECK_EQ(w.to_int(), 0x1347);
     }
     
@@ -44,9 +44,9 @@ TEST_CASE("Word -- constructors")
     {
         constexpr Word w;
 
-        static_assert(w.raw() == 0, "Test failed at compile-time!");
+        static_assert(w.get_raw() == 0, "Test failed at compile-time!");
 
-        CHECK_EQ(w.raw(), 0);
+        CHECK_EQ(w.get_raw(), 0);
     }
 
     SUBCASE("From integer")
@@ -68,10 +68,10 @@ TEST_CASE("Word -- constructors")
         static_assert(w2.to_int() == 0xBEEF);
 
         CHECK_EQ(w1.to_int(), 0xBEEF);
-        CHECK_EQ(w1.raw(), 0xEFBE);
+        CHECK_EQ(w1.get_raw(), 0xEFBE);
         
         CHECK_EQ(w2.to_int(), 0xBEEF);
-        CHECK_EQ(w2.raw(), 0xEFBE);
+        CHECK_EQ(w2.get_raw(), 0xEFBE);
     }
 }
 

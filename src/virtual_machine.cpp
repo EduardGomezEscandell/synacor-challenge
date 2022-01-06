@@ -1,6 +1,6 @@
 #include "virtual_machine.h"
 
-void VirtualMachine::LoadMemory(std::basic_istream<raw_word_t>& source)
+void VirtualMachine::LoadMemory(program_file_t& source)
 {
     m_memory.load(source);
 }
