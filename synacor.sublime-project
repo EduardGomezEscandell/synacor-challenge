@@ -47,14 +47,16 @@
 		{
 			"name" : "Test",
 			"working_dir" : "${project_path}",
-			"shell_cmd" : "./bin/Release/run_tests",
+			"shell_cmd" : "./bin/Release/run_tests --force-colors=1",
 			"variants" : [
 				{
 					"name" : "Debug",
-					"shell_cmd" : "./bin/Debug/run_tests ${file}",
+					"shell_cmd" : "./bin/Debug/run_tests --force-colors=1",
 					"file_regex": "\/home\/[a-zA-z0-9/]*\/Synacor\/([^:]*):([0-9]*)",
 				}
-			]
+			],
+			"target": "ansi_color_build",
+    	    "syntax": "Packages/ANSIescape/ANSI.tmLanguage"
 		},
 		{
 			"name" : "Assemble",

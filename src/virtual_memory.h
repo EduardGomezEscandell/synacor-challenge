@@ -20,7 +20,7 @@ class Memory
 
     constexpr Word& dereference(Address const& ptr)
     {
-        return dereference(ptr.get().flip().raw);
+        return dereference(ptr.get().to_int());
     }
 
     constexpr Word const& dereference(Word::word_t raw_ptr) const
@@ -30,7 +30,7 @@ class Memory
 
     constexpr Word const& dereference(Address const& ptr) const
     {
-        return dereference(ptr.get().flip().raw);
+        return dereference(ptr.get().to_int());
     }
 
 
