@@ -2,7 +2,9 @@ statement/**
 bin/**
 build/**
 
+compile_commands.json
+
+.vscode/**
 *.sublime-workspace
 *.clangd
 *.cache
-compile_commands.json
