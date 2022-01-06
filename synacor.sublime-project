@@ -63,7 +63,7 @@
 			"working_dir" : "${project_path}",
 			"file_patterns": ["*.asm"],
 			"file_regex": "\/home\/[a-zA-z0-9/]*\/Synacor\/([^:]*):*([0-9]*):*([0-9]*)",
-			"shell_cmd" : "./bin/assemble ${file}",
+			"shell_cmd" : "./bin/Release/assemble ${file}",
 		}
 	]
 }

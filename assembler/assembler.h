@@ -13,8 +13,8 @@
 
 namespace assembler {
 
-typedef uint_least8_t half_word_t;
-typedef uint_least16_t word_t;
+typedef uint8_t half_word_t;
+typedef uint16_t word_t;
 
 void PrintHelp()
 {
@@ -55,7 +55,7 @@ struct Instruction {
 
 struct ErroneousToken : public std::exception
 {
-    enum struct TokenType {INSTRUCTION, INTEGER, REGISTER};
+    enum struct TokenType {INSTRUCTION, BAD_ARGUMENT, REGISTER, INTEGER};
     
     ErroneousToken(
         const TokenType token,
@@ -99,9 +99,9 @@ word_t GetRegister(
     if(std::distance(begin, end) != 2) return 0;
     if(*begin != 'r') return 0;
 
-    if(begin[1] < 'A' || begin[1] > 'H') return 0;
+    if(begin[1] < 'a' || begin[1] > 'f') return 0;
 
-    return 32768 + begin[1] - 'A';
+    return 32768 + begin[1] - 'a';
 }
 
 const auto& GetOpData()
@@ -161,30 +161,43 @@ std::optional<ErroneousToken::TokenType> ReadArgument(
     std::string_view::const_iterator& end)
 {
     word_t arg = 0;
-    if(*begin == 'r')
+    if(*begin == 'r') // Register
     {
         arg = GetRegister(begin, end);
         if(arg == 0) return ErroneousToken::TokenType::REGISTER;
     }
-    else if(std::from_chars(begin, end, arg).ec == std::errc::invalid_argument)
+    else // String literal
     {
-        return ErroneousToken::TokenType::INTEGER;
+        if(std::from_chars(begin, end, arg).ec == std::errc::invalid_argument)
+        {
+            return ErroneousToken::TokenType::BAD_ARGUMENT; // Integer ill-formed
+        }
+        
+        if(arg > 0x8000)
+        {
+            return ErroneousToken::TokenType::INTEGER; // Integer too large
+        }
     }
+
 
     instruction.args.push_back(arg);
     return {};
 }
 
+bool is_whitespace(char const c)
+{
+    return c==' ' || c == '\t';
+}
 
 void NextToken(auto& begin, auto& end, const auto& str_end)
 {
-    while(begin != str_end && *begin != ';' && *begin==' ') 
+    while(begin != str_end && *begin != ';' && is_whitespace(*begin))
     {
         ++begin;
     }
 
     end = begin;
-    while(end != str_end && *end != ';' && *end!=' ') 
+    while(end != str_end && *end != ';' && !is_whitespace(*end)) 
     {
         ++end;
     }

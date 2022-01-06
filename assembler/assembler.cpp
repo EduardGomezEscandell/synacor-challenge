@@ -32,8 +32,11 @@ int main(int argc, char**argv)
 		catch(TooManyArgs& e)
 		{
 			no_errors = false;
-			std::cerr << "Too many arguments: (expected " << GetOpData()[(size_t) e.m_instruction.op].n_args << ") in " 
-					  << argv[1] <<":" << ln << ":" << e.m_start+1 << '\n' << line << '\n';
+			std::cerr << "In line ";
+			std::cerr << argv[1] <<":" << ln << ":" << e.m_start+1 << ":\n";
+
+			std::cerr << "Too many arguments: (expected " << GetOpData()[(size_t) e.m_instruction.op].n_args << ")";
+			std::cerr <<'\n' << line << '\n';
 			size_t col=0;
 			for(; col < e.m_start; ++col) std::cerr << " ";
 			std::cerr << "^";
@@ -43,14 +46,17 @@ int main(int argc, char**argv)
 		catch(ErroneousToken& e)
 		{
 			no_errors = false;
+			std::cerr << "In line ";
+			std::cerr << argv[1] <<":" << ln << ":" << e.m_start+1 << ":\n";
+			
 			std::cerr << "Erroneous";
 			switch (e.m_token) {
-				case assembler::ErroneousToken::TokenType::INSTRUCTION: std::cerr << " instruction"; break;
-				case assembler::ErroneousToken::TokenType::INTEGER:     std::cerr << " integer";     break;
-				case assembler::ErroneousToken::TokenType::REGISTER:    std::cerr << " register";    break;
+				case assembler::ErroneousToken::TokenType::INSTRUCTION:  std::cerr << " instruction"; break;
+				case assembler::ErroneousToken::TokenType::BAD_ARGUMENT: std::cerr << " argument";    break;
+				case assembler::ErroneousToken::TokenType::REGISTER:     std::cerr << " register";    break;
+				case assembler::ErroneousToken::TokenType::INTEGER:      std::cerr << " integer";     break;
 			}
-			std::cerr << ": " << argv[1] 
-			<<":" << ln << ":" << e.m_start+1 << '\n' << line << '\n';
+			std::cerr <<'\n' << line << '\n';
 			size_t col=0;
 			for(; col < e.m_start; ++col) std::cerr << " ";
 			std::cerr << "^";
