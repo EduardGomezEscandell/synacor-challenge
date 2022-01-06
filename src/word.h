@@ -2,8 +2,11 @@
 
 #include <compare>
 #include <cstdint>
-#include <ostream>
 #include <concepts>
+
+#include <iostream>
+#include <iomanip>
+#include <sstream>
 
 
 using raw_byte_t = std::uint8_t;
@@ -67,6 +70,12 @@ public:
         return (static_cast<raw_word_t>(hi()) << 8) | lo();
     }
 
+    std::string hex_dump() const
+    {
+        std::stringstream ss;
+        ss << std::hex << std::setfill('0') << std::setw(4) << get_raw() + 0u;
+        return ss.str();
+    }
 };
 
 constexpr Word::Word(raw_byte_t in) noexcept

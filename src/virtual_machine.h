@@ -16,6 +16,7 @@ public:
     void Run();
 
     constexpr Memory const& memory() const noexcept {return m_memory; }
+    void Print() const;
 
 private:
     constexpr void ExecuteNextInstruction();
@@ -101,6 +102,6 @@ constexpr void VirtualMachine::ExecuteNextInstruction()
         case InstructionData::IN:    return Execute<InstructionData::IN>();
         case InstructionData::NOOP:  return Execute<InstructionData::NOOP>();
         
-        default:  return Execute<InstructionData::BAD_HALT>();
+        default:  return Execute<InstructionData::FATAL_ERROR>();
     }
 }

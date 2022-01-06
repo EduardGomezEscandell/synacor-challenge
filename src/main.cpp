@@ -30,6 +30,7 @@ int main(int argc, char * argv[])
     vm.Initialize();
     vm.Run();
 
+    vm.Print();
 
     return EXIT_SUCCESS;
 }

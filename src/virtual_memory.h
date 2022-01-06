@@ -13,7 +13,7 @@
 
 class Memory
 {
-    static constexpr std::uint_least16_t address_space = 0x8000;
+    static constexpr raw_word_t address_space = 0xFFFF;
 
     constexpr void AssertValidAddress(
         [[maybe_unused]] const raw_word_t raw_ptr) const noexcept
@@ -83,6 +83,11 @@ public:
         return dereference(ptr);
     }
 
+    constexpr Word const& operator[](auto const& ptr) const
+    {
+        return dereference(ptr);
+    }
+
     void hex_dump(const size_t row_begin, const size_t row_end) const
     {
         constexpr size_t row_size = 0x08;
@@ -95,8 +100,7 @@ public:
             for(size_t j=0; j < row_size; ++j)
             {
                 std::cout << ' ';
-                std::cout << std::hex << std::setfill('0') << std::setw(4)
-                          << m_data[i + j].get_raw() + 0u;
+                std::cout << m_data[i + j].hex_dump();
             }
 
             std::cout << '\n';

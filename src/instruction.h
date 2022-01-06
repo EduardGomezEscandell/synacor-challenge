@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cassert>
+
 #include "word.h"
 
 class InstructionData
@@ -30,12 +32,20 @@ public:
         OUT,
         IN,
         NOOP,
-        BAD_HALT
+        FATAL_ERROR
     };
 
     static constexpr OpCode Interpret(Word const& word)
     {
-        return static_cast<OpCode>(word.get_raw());
+        // Operations   0 --   21 are correct
+        // Operations  22 --   FF terminate the program
+        // Operations 100 -- FFFF are truncated to the previous two
+        
+#ifndef DNDEBUG
+        if(word.hi() != 0) return FATAL_ERROR;
+#endif
+
+        return static_cast<OpCode>(word.lo());
     }
 
 private:

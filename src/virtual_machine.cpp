@@ -18,3 +18,17 @@ void VirtualMachine::Run()
         ExecuteNextInstruction();
     }
 }
+
+void VirtualMachine::Print() const
+{
+    std::cout << "Virtual machine\n";
+
+    std::cout << "iPtr = " << m_instr_ptr.get().hex_dump()
+              << " --> "   << m_memory[m_instr_ptr].hex_dump() << '\n';
+
+    for(size_t i=0; i<8; ++i)
+    {
+        
+    }
+    std::cout <<" "
+}
