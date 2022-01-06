@@ -3,7 +3,7 @@
 #include <compare>
 #include <cstdint>
 #include <ostream>
-#include <system_error>
+#include <concepts>
 
 class Word 
 {
@@ -38,7 +38,7 @@ public:
             return this->get() <=> other;
         }
 
-        constexpr std::strong_ordering operator<=>(int other)
+        constexpr std::strong_ordering operator<=>(std::integral auto other)
         {
             return this->get() <=> (other & 0x00FF);
         }
@@ -79,7 +79,7 @@ public:
             return set(value);
         }
 
-        constexpr auto operator=(int value) noexcept
+        constexpr auto operator=(std::integral auto value) noexcept
         {
             return set(value & 0x00FF);
         }
@@ -93,7 +93,7 @@ public:
     constexpr Word() = default;
     constexpr Word(Word const& word) = default;
     constexpr Word(half_word_t in) noexcept;
-    constexpr Word(auto in) noexcept;
+    constexpr Word(std::integral auto in) noexcept;
 
     constexpr Word& operator=(Word const& word) = default;
 
@@ -172,13 +172,13 @@ constexpr Word::Word(Word::half_word_t in) noexcept
     lo() = in;
 }
 
-constexpr Word::Word(auto in) noexcept
+constexpr Word::Word(std::integral  auto in) noexcept
 {
     lo() = (in & 0x00FF);
     hi() = (in >> 8) & 0x00FF;
 }
 
-constexpr Word& Word::operator+=(word_t jump) noexcept
+constexpr Word& Word::operator+=(const word_t jump) noexcept
 {
     const half_word_t jump_lo = jump & 0x00FF;
     const half_word_t jump_hi = jump >> 8;

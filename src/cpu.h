@@ -40,23 +40,23 @@ constexpr void CPU::Execute()
 template<>
 constexpr void CPU::Execute<InstructionData::SET>()
 {
-    const Address ptr = m_memory[m_instr_ptr++];
-    const Word value  = m_memory[m_instr_ptr++];
+    const auto ptr   = Address(m_memory[m_instr_ptr++]);
+    const Word value = m_memory[m_instr_ptr++];
     m_memory[ptr] = value;
 }
 
 template<>
 constexpr void CPU::Execute<InstructionData::ADD>()
 {
-    const Address p_result = m_memory[m_instr_ptr++];
-    const Address p_sum1   = m_memory[m_instr_ptr++];
-    const Address p_sum2   = m_memory[m_instr_ptr++];
+    const auto p_result = Address(m_memory[m_instr_ptr++]);
+    const auto p_sum1   = Address(m_memory[m_instr_ptr++]);
+    const auto p_sum2   = Address(m_memory[m_instr_ptr++]);
 
     m_memory[p_result] = m_memory[p_sum1] + m_memory[p_sum2];
 }
 
 template<>
-void CPU::Execute<InstructionData::OUT>()
+inline void CPU::Execute<InstructionData::OUT>()
 {
     std::cout << m_memory[m_instr_ptr++];
     ++m_instr_ptr;
