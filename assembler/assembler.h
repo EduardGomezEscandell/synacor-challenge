@@ -55,7 +55,9 @@ struct Instruction {
 
 struct ErroneousToken : public std::exception
 {
-    enum struct TokenType {INSTRUCTION, BAD_ARGUMENT, REGISTER, INTEGER};
+    enum struct TokenType {
+        INSTRUCTION, BAD_ARGUMENT, REGISTER, INTEGER, ASCII
+    };
     
     ErroneousToken(
         const TokenType token,
@@ -101,7 +103,55 @@ word_t GetRegister(
 
     if(begin[1] < 'a' || begin[1] > 'f') return 0;
 
-    return 32768 + begin[1] - 'a';
+    return 0x8000 + begin[1] - 'a';
+}
+
+word_t GetASCII(
+    const std::string_view::const_iterator begin,
+    const std::string_view::const_iterator end)
+{
+    static constexpr word_t invalid_ascii = 0xFFFF; // Expanded ASCII not suported
+
+    std::size_t len = std::distance(begin, end);
+    
+    if(begin[0] != '\'') return invalid_ascii;
+    if(begin[len-1] != '\'') return invalid_ascii;
+
+    if(len == 3)
+    {
+        return static_cast<unsigned char>(begin[1]);
+    }
+    if(len == 4)
+    {
+        if(begin[1] != '\\') return invalid_ascii;
+
+        switch(begin[2])
+        {   
+        /**
+         * Source:
+         *   Wikipedia. Escape_sequences_in_C.
+         *   https://en.wikipedia.org/wiki/Escape_sequences_in_C#Table_of_escape_sequences
+         *   Accessed 2022-01-07
+         */
+            case 'a':  return 0x07; //  Alert (Beep, Bell) (added in C89)[1]
+            case 'b':  return 0x08; //  Backspace
+            case 'e':  return 0x1B; //  Escape character
+            case 'f':  return 0x0C; //  Formfeed Page Break
+            case 'n':  return 0x0A; //  Newline (Line Feed)
+            case 'r':  return 0x0D; //  Carriage Return
+            case 't':  return 0x09; //  Horizontal Tab
+            case 'v':  return 0x0B; //  Vertical Tab
+            case '\\': return 0x5C; //  Backslash
+            case '\'': return 0x27; //  Apostrophe or single quotation mark
+            case '"':  return 0x22; //  Double quotation mark
+            case '?':  return 0x3F; //  Question mark (used to avoid trigraphs)
+        }
+
+        return invalid_ascii;
+    }
+
+
+    return invalid_ascii;
 }
 
 const auto& GetOpData()
@@ -154,6 +204,8 @@ std::optional<OpCode> ReadOp(
     return it->code;
 }
 
+
+
 [[nodiscard]]
 std::optional<ErroneousToken::TokenType> ReadArgument(
     Instruction & instruction,
@@ -165,6 +217,11 @@ std::optional<ErroneousToken::TokenType> ReadArgument(
     {
         arg = GetRegister(begin, end);
         if(arg == 0) return ErroneousToken::TokenType::REGISTER;
+    }
+    else if(*begin == '\'') // ASCII
+    {
+        arg = GetASCII(begin, end);
+        if(arg > 64) return ErroneousToken::TokenType::ASCII;
     }
     else // String literal
     {
