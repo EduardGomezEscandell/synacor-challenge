@@ -21,14 +21,21 @@ void VirtualMachine::Run()
 
 void VirtualMachine::Print() const
 {
-    std::cout << "Virtual machine\n";
+    std::cout << "Registers:\n";
+    std::cout << "-instr : " 
+              << m_instr_ptr.get().hex_dump() <<" ("
+              << InstructionData::InstructionName(InstructionData::to_opcode(m_memory[m_instr_ptr]))
+              << ")\n";
 
-    std::cout << "iPtr = " << m_instr_ptr.get().hex_dump()
-              << " --> "   << m_memory[m_instr_ptr].hex_dump() << '\n';
+    for(size_t i=0; i<8; ++i)
+    {
+        std::cout << "-data " << (char) ('a' + i) << ": " 
+                  << m_registers[i].hex_dump() 
+                  << " | " << std::setw(5) << std::setfill(' ') << m_registers[i].to_int()
+                  << " | " << m_registers[i].hi() << m_registers[i].lo() << '\n';
+    }
 
-    // for(size_t i=0; i<8; ++i)
-    // {
-        
-    // }
-    // std::cout <<" "
+    std::cout << "\nFlags:\n";
+    std::cout << "- HALTED: " << m_flags.Is(Flags::HALTED) << '\n';
+    std::cout << "- ERROR : " << m_flags.Is(Flags::ERROR) << '\n';
 }

@@ -1,5 +1,6 @@
 #include <cstdio>
 #include <iostream>
+#include "address.h"
 #include "instruction.h"
 #include "flags.h"
 #include "virtual_memory.h"
@@ -21,12 +22,41 @@ public:
 private:
     constexpr void ExecuteNextInstruction();
 
+    constexpr Word& RegisterFromInteger(Word w)
+    {
+#ifndef DNDEBUG
+        assert(InstructionData::to_wordtype(w) == InstructionData::REGISTER);
+#endif
+        return m_registers[w.lo()];
+    }
+
+    constexpr Word const& RegisterFromInteger(Word w) const
+    {
+#ifndef DNDEBUG
+        assert(InstructionData::to_wordtype(w) == InstructionData::REGISTER);
+#endif
+        return m_registers[w.lo()];
+    }
+
+    constexpr Word const& GetValue(Word const& arg) const
+    {
+        if(InstructionData::to_wordtype(arg) == InstructionData::REGISTER)
+        {
+            return RegisterFromInteger(arg);
+        } else {
+            return arg;
+        }
+    }
+
     template<InstructionData::OpCode TOp>
     constexpr void Execute();
+
+    static constexpr std::size_t num_registers = InstructionData::num_registers;
 
     Flags m_flags;
     Address m_instr_ptr;
     Memory m_memory;
+    Word m_registers[num_registers];
 };
 
 
@@ -46,25 +76,35 @@ constexpr void VirtualMachine::Execute()
 template<>
 constexpr void VirtualMachine::Execute<InstructionData::SET>()
 {
-    const auto ptr   = Address(m_memory[m_instr_ptr++]);
-    const Word value = m_memory[m_instr_ptr++];
-    m_memory[ptr] = value;
+    Word& r = RegisterFromInteger(m_memory[++m_instr_ptr]);
+    r = GetValue(m_memory[++m_instr_ptr]);
+    
+    ++m_instr_ptr;
 }
 
 template<>
 constexpr void VirtualMachine::Execute<InstructionData::ADD>()
 {
-    const auto p_result = Address(m_memory[m_instr_ptr++]);
-    const auto p_sum1   = Address(m_memory[m_instr_ptr++]);
-    const auto p_sum2   = Address(m_memory[m_instr_ptr++]);
+    Word& r = RegisterFromInteger(m_memory[++m_instr_ptr]);
+    const Word arg1   = GetValue(m_memory[++m_instr_ptr]);
+    const Word arg2   = GetValue(m_memory[++m_instr_ptr]);
 
-    m_memory[p_result] = m_memory[p_sum1] + m_memory[p_sum2];
+    r = arg1 + arg2;
+
+    ++m_instr_ptr;
 }
 
 template<>
 inline void VirtualMachine::Execute<InstructionData::OUT>()
 {
-    std::cout << m_memory[m_instr_ptr++];
+    std::cout << GetValue(m_memory[++m_instr_ptr]).lo();
+    ++m_instr_ptr;
+}
+
+template<>
+constexpr void VirtualMachine::Execute<InstructionData::IN>()
+{
+    std::cin >> RegisterFromInteger(m_memory[++m_instr_ptr]);
     ++m_instr_ptr;
 }
 
@@ -77,7 +117,7 @@ constexpr void VirtualMachine::Execute<InstructionData::NOOP>()
 
 constexpr void VirtualMachine::ExecuteNextInstruction()
 {
-    switch (InstructionData::Interpret(m_memory[m_instr_ptr]))
+    switch (InstructionData::to_opcode(m_memory[m_instr_ptr]))
     {
         case InstructionData::HALT:  return Execute<InstructionData::HALT>();
         case InstructionData::SET:   return Execute<InstructionData::SET>();

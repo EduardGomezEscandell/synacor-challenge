@@ -221,7 +221,7 @@ std::optional<ErroneousToken::TokenType> ReadArgument(
     else if(*begin == '\'') // ASCII
     {
         arg = GetASCII(begin, end);
-        if(arg > 64) return ErroneousToken::TokenType::ASCII;
+        if(arg > 127) return ErroneousToken::TokenType::ASCII;
     }
     else // String literal
     {
@@ -248,15 +248,35 @@ bool is_whitespace(char const c)
 
 void NextToken(auto& begin, auto& end, const auto& str_end)
 {
+    // Used to pair up '', "", ¿?, {}, [], () should they have any meaning
+    std::vector<char> stack {};
+
+    constexpr auto get_oposite = [](const char c) -> bool
+    {
+        switch(c) {
+            case '\'': return '\'';
+        }
+        return '\0';
+    };
+
     while(begin != str_end && *begin != ';' && is_whitespace(*begin))
     {
         ++begin;
     }
 
-    end = begin;
-    while(end != str_end && *end != ';' && !is_whitespace(*end)) 
+    for(end = begin; end != str_end; ++end)
     {
-        ++end;
+        if(stack.empty() && (*end == ';' || is_whitespace(*end))) break;
+
+        if(!stack.empty() && *end == stack.back()) {
+            stack.pop_back();
+            continue;
+        }
+
+        char oposite = get_oposite(*end);
+        if(oposite == '\0') continue;
+
+        stack.push_back(oposite);
     }
 
 

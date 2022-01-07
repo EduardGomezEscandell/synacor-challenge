@@ -25,11 +25,14 @@ int main(int argc, char * argv[])
 
     vm.LoadMemory(program);
 
-    vm.memory().hex_dump(0, 2);
+    std::cout << ">> Memory at start:\n";
+    vm.memory().hex_dump(0, 5);
 
     vm.Initialize();
+    std::cout << ">> Program output:\n";
     vm.Run();
 
+    std::cout << "\n>> VM exit state:\n";
     vm.Print();
 
     return EXIT_SUCCESS;

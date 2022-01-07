@@ -16,12 +16,15 @@ class Word
 {
 public:
     enum byte{LO, HI};
+    static constexpr raw_word_t max_word = 0x8000;
 
     raw_byte_t data[2] = {0, 0};
 
     constexpr Word() = default;
     constexpr Word(Word const& word) = default;
-    constexpr Word(raw_byte_t in) noexcept;
+
+    constexpr Word(raw_byte_t in) noexcept { lo() = in; }
+
     constexpr Word(std::integral auto in) noexcept;
 
     constexpr Word& operator=(Word const& word) = default;
@@ -76,12 +79,10 @@ public:
         ss << std::hex << std::setfill('0') << std::setw(4) << get_raw() + 0u;
         return ss.str();
     }
+
 };
 
-constexpr Word::Word(raw_byte_t in) noexcept
-{
-    lo() = in;
-}
+
 
 constexpr Word::Word(std::integral auto in) noexcept
 {
@@ -101,6 +102,8 @@ constexpr Word& Word::operator+=(const raw_word_t jump) noexcept
 
     lo() += jump_lo;
     hi() += jump_hi;
+
+    hi() %= (max_word>>8);
 
     return *this;
 }

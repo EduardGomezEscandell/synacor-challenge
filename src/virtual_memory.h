@@ -9,11 +9,12 @@
 #include <sys/types.h>
 
 #include "word.h"
+#include "instruction.h"
 #include "address.h"
 
 class Memory
 {
-    static constexpr raw_word_t address_space = 0xFFFF;
+    static constexpr raw_word_t address_space = Word::max_word;
 
     constexpr void AssertValidAddress(
         [[maybe_unused]] const raw_word_t raw_ptr) const noexcept
@@ -105,6 +106,7 @@ public:
 
             std::cout << '\n';
         }
+        std::cout << '\n';
     }
 
 private:

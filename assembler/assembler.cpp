@@ -49,12 +49,13 @@ int main(int argc, char**argv)
 			std::cerr << "In line ";
 			std::cerr << argv[1] <<":" << ln << ":" << e.m_start+1 << ":\n";
 			
-			std::cerr << "Erroneous";
+			std::cerr << "Erroneous ";
 			switch (e.m_token) {
-				case assembler::ErroneousToken::TokenType::INSTRUCTION:  std::cerr << " instruction"; break;
-				case assembler::ErroneousToken::TokenType::BAD_ARGUMENT: std::cerr << " argument";    break;
-				case assembler::ErroneousToken::TokenType::REGISTER:     std::cerr << " register";    break;
-				case assembler::ErroneousToken::TokenType::INTEGER:      std::cerr << " integer";     break;
+				case assembler::ErroneousToken::TokenType::INSTRUCTION:  std::cerr << "instruction"; break;
+				case assembler::ErroneousToken::TokenType::BAD_ARGUMENT: std::cerr << "argument";    break;
+				case assembler::ErroneousToken::TokenType::REGISTER:     std::cerr << "register";    break;
+				case assembler::ErroneousToken::TokenType::INTEGER:      std::cerr << "integer";     break;
+				case assembler::ErroneousToken::TokenType::ASCII:        std::cerr << "character literal";     break;
 			}
 			std::cerr <<'\n' << line << '\n';
 			size_t col=0;
