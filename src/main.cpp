@@ -30,7 +30,7 @@ int main(int argc, char * argv[])
 
     vm.Initialize();
     std::cout << ">> Program output:\n";
-    vm.Run();
+    vm.RunDebug();
 
     std::cout << "\n>> VM exit state:\n";
     vm.Print();

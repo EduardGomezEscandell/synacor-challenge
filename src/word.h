@@ -21,6 +21,7 @@ public:
     raw_byte_t data[2] = {0, 0};
 
     constexpr Word() = default;
+    constexpr Word(const bool in) noexcept {lo() = in; }
     constexpr Word(Word const& word) = default;
 
     constexpr Word(raw_byte_t in) noexcept { lo() = in; }
@@ -48,6 +49,11 @@ public:
     constexpr bool operator!=(Word const& other) const noexcept = default;
     constexpr bool operator>=(Word const& other) const noexcept = default;
     constexpr bool operator>(Word const& other) const noexcept = default;
+
+    constexpr bool is_zero() const noexcept
+    {
+        return hi() == 0 && lo() == 0;
+    }
 
     constexpr Word flip() const noexcept;
 

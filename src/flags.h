@@ -1,19 +1,18 @@
 #include <cstdint>
-
 class Flags
 {
-using flag_storage_t = uint_least8_t;
+using flag_storage_t = std::int8_t;
 
 public:
-	enum flags_t
+	enum flags_t : flag_storage_t
 	{
 		NONE   = 0x00,
 		HALTED = 0x01,
 		ERROR  = 0X02,
-		ALL = ~static_cast<flag_storage_t>(0)
+		BAD_INPUT = 0x04
 	};
 
-	Flags(flags_t state = NONE)
+	constexpr Flags(flags_t state = NONE)
 		: m_flags(state)
 	{};
 

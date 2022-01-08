@@ -89,19 +89,38 @@ public:
         return dereference(ptr);
     }
 
-    void hex_dump(const size_t row_begin, const size_t row_end) const
+    void hex_dump(const std::size_t row_begin, const std::size_t row_end, const std::size_t highlight = address_space+1) const
     {
-        constexpr size_t row_size = 0x08;
+        constexpr std::size_t row_size = 0x08;
 
-        for(size_t i = row_begin*row_size; i != row_end*row_size; i += row_size)
+        for(std::size_t i = row_begin*row_size; i != row_end*row_size; i += row_size)
         {
             std::cout << std::hex << std::setfill('0') << std::setw(4) << i;
             std::cout << ':';
 
-            for(size_t j=0; j < row_size; ++j)
+            for(std::size_t j=0; j < row_size; ++j)
             {
-                std::cout << ' ';
-                std::cout << m_data[i + j].hex_dump();
+                const auto address = i + j;
+                
+                if(address == highlight)    std::cout << '[';
+                else                        std::cout << ' ';
+
+                std::cout << m_data[address].hex_dump();
+
+                if(address == highlight)    std::cout << ']';
+                else                        std::cout << ' ';
+
+            }
+
+            std::cout << " | ";
+
+            for(std::size_t j=0; j < row_size; ++j)
+            {
+                const auto lo = m_data[i+j].lo();
+                if(lo > 32)
+                    std::cout << static_cast<char>(lo);
+                else
+                    std::cout << '.';
             }
 
             std::cout << '\n';
