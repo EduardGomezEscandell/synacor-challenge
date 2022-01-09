@@ -15,6 +15,7 @@ struct Flags
         BAD_INTEGER      = 0b00000100,  // Integer larger than max_word
         STACK_UNDERFLOW  = 0b00001000,  // Attempted to pop empty stack
         WRITE_ON_LITERAL = 0b00010000,  // Attempted to write on a literal (example: SET 23 15 ; expected register, got 23)
+        INTERRUPT        = 0b00100000,  // System interruption
     };
 
     constexpr Flags(flag_storage_t state = NONE)

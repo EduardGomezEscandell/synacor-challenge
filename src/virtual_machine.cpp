@@ -10,57 +10,35 @@
 #include <sstream>
 #include <limits>
 
-#include <functional>
-#include <stdexcept>
-#include <unistd.h>
-#include <signal.h>
-
-
 void VirtualMachine::LoadMemory(program_file_t& source)
 {
     m_memory.load(source, m_stack_ptr);
 }
 
-void VirtualMachine::Run()
+/**
+ * @brief Removes items from a map according to a predicate
+ */
+template< typename TMap, typename TPredicate>
+constexpr void map_erase_if(TMap& items, const TPredicate& predicate)
 {
-    InitializeSignalHandler();
-    StackInit();
-
-    while(!m_flags.Is(Flags::HALTED | Flags::ERROR))
+    for(auto it = items.begin(); it != items.end();)
     {
-        ExecuteNextInstruction();
+        if(predicate(*it->second)) it = items.erase(it);
+        else ++it;
     }
 }
 
-void VirtualMachine::RunDebug()
+
+void VirtualMachine::Run()
 {
-    InitializeSignalHandler();
     StackInit();
 
-    std::cout << "Running synacor VM in debug mode. Press any key after every step to continue" << std::endl;
-    std::stringstream ss;
-    m_ostream = &ss;
-
-    std::size_t instr_count = 0;
     while(!m_flags.Is(Flags::HALTED | Flags::ERROR))
     {
-        std::cout << "====================== STEP #" << instr_count << "======================\n";
-        Print();
-
-        std::cout << "Output: \n" << ss.str();
-
         ExecuteNextInstruction();
-        std::cout << std::endl;
 
-        // std::ignore = std::cin.get();
-        for(std::size_t i=0; i < 50; ++i)
-            std::cout << "\n";
-        std::cout << std::flush; // clearing console
-        ++ instr_count;
+        map_erase_if(m_attached_processes, [](BaseProcess& process){ return process(); });
     }
-
-    std::cout << "======================  DONE ======================\n";
-    std::cout << ss.str() << std::endl;
 }
 
 void VirtualMachine::Print() const
@@ -85,6 +63,7 @@ void VirtualMachine::Print() const
     std::cout << "- BAD_INT  : " << m_flags.Is(Flags::BAD_INTEGER) << '\n';
     std::cout << "- STACK_UF : " << m_flags.Is(Flags::STACK_UNDERFLOW) << '\n';
     std::cout << "- W_ON_LIT : " << m_flags.Is(Flags::WRITE_ON_LITERAL) << '\n';
+    std::cout << "- INTERRUPT: " << m_flags.Is(Flags::INTERRUPT) << '\n';
 
     std::cout << "\nMemory around instruction pointer:\n";
     const std::size_t instr_ptr_row = m_instr_ptr.get().to_int() / 8;
@@ -94,6 +73,10 @@ void VirtualMachine::Print() const
     const std::size_t stack_base_ptr_row = m_stack_base_ptr.get().to_int() / 8;
     const std::size_t stack_ptr_row = m_stack_ptr.get().to_int() / 8;
     memory().hex_dump(stack_base_ptr_row, stack_ptr_row+1, m_stack_ptr.get().to_int());
+    std::cout << "\n\n";
+
+    std::cout << "Attached processes:\n";
+    std::for_each(m_attached_processes.begin(), m_attached_processes.end(), [](auto const& pair){ std::cout << "- " << pair.second->Name() << '\n'; });
     std::cout << std::endl;
 }
 
@@ -480,61 +463,4 @@ VirtualMachine::TextBuffer& operator>>(VirtualMachine::TextBuffer& tbuffer, Word
     t.lo() = tbuffer.data[tbuffer.ptr++];
     t.hi() = 0;
     return tbuffer;
-}
-
-void VirtualMachine::InitializeSignalHandler()
-{
-    active_vm = this;
-
-    struct sigaction sigIntHandler;
-
-    sigIntHandler.sa_handler = sig_handle;
-    sigemptyset(&sigIntHandler.sa_mask);
-    sigIntHandler.sa_flags = 0;
-
-    sigaction(SIGINT, &sigIntHandler, NULL);
-}
-
-void VirtualMachine::sig_handle(int sig_id)
-{
-    switch (sig_id) {
-        case 2: break; // KEYBOARD INTERRUPT
-        default:
-            std::cout << "\nCaught signal " << sig_id << std::endl;
-            exit(EXIT_FAILURE);
-    }
-
-    std::cout << "\nCaught signal KEYBOARD_INTERRUPT" << std::endl;
-
-    const auto& vm = VirtualMachine::GetActiveVM();
-
-    std::cout << ">> Current state:\n";
-    vm->Print();
-
-    constexpr auto question = [](const std::string_view question)
-    {
-        std::cout << question; 
-        std::string a;
-        while(true)
-        {
-            std::cin >> a;
-            if(a == "y" || a=="yes") return true;
-            if(a == "n" || a=="no") return false;
-            std::cout << "Input not recognized. Please, answer y or n: ";
-        }
-    };
-
-    if(question("Do you wish to save the current state before terminating?"))
-    {
-        const std::string filename = "synacor_vm_dump.dmp";
-        std::ofstream outfile(filename, std::ios_base::binary);
-
-        Serializer::Write(outfile, vm);
-
-        std::cout << "Virtual machine state dumped into file: " << filename << std::endl;
-    }
-
-    std::cout << "Terminating" << std::endl;
-
-    exit(EXIT_FAILURE);
 }

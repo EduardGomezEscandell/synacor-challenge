@@ -2,6 +2,8 @@
 
 #include <cstdlib>
 #include <ostream>
+#include <memory>
+#include <unordered_map>
 
 #include "address.h"
 #include "instruction.h"
@@ -15,6 +17,16 @@ class VirtualMachine
 public:
     using program_file_t = Memory::program_file_t;
 
+    struct BaseProcess
+    {
+        BaseProcess(VirtualMachine & vm) : m_parent_vm(vm) { };
+        virtual bool operator()() = 0; // Returns true if it has to be removed. False otherwise
+        static inline std::string name = "BaseProcess";
+        virtual std::string const& Name() const noexcept = 0;
+    protected:
+        VirtualMachine& m_parent_vm;
+    };
+
     class TextBuffer
     {
     public:
@@ -24,8 +36,22 @@ public:
         std::istream& m_istream;
         std::string data;
         std::size_t ptr = 0;
-
     };
+
+    template<typename TProcess>
+    void AttachProcess() { m_attached_processes.try_emplace(TProcess::name, std::make_unique<TProcess>(*this)); }
+    
+    template<typename TProcess>
+    void ToggleProcess()
+    {
+        auto it = m_attached_processes.find(TProcess::name);
+        if(it == m_attached_processes.end())
+        {
+            AttachProcess<TProcess>();
+        } else {
+            m_attached_processes.erase(it);
+        }
+    }
 
     void LoadMemory(program_file_t& source);
     void Run();
@@ -33,8 +59,6 @@ public:
 
     constexpr Memory const& memory() const noexcept {return m_memory; }
     void Print() const;
-
-    static VirtualMachine const* GetActiveVM() noexcept { return active_vm;}
 
 private:
     constexpr void ExecuteNextInstruction();
@@ -105,10 +129,6 @@ private:
 
     TextBuffer m_input_buffer; // Stream that IN instruction uses as a buffer
 
-    static void sig_handle(int s);
-    void InitializeSignalHandler();
-
-
     Flags m_flags;                         // Flags indicating side-effects of instructions
     std::array<Word, num_registers> m_registers;       // General-purpose registers
     Address m_instr_ptr = 0;               // Register containing the instruction pointer: points to the next instruction's opcode
@@ -119,5 +139,8 @@ private:
     std::ostream * m_ostream = &std::cout; // Stream that OUT instruction ouputs to
 
     friend class Serializer;
-    static inline VirtualMachine const* active_vm = NULL;
+    friend class ExecutionWrapper;
+
+    std::unordered_map<std::string, std::unique_ptr<BaseProcess>> m_attached_processes;
+    bool paused = false;
 };
