@@ -109,15 +109,8 @@ TEST_CASE("Word -- comparisons")
     }
 }
 
-TEST_CASE("Word -- arithmetic")
+TEST_CASE("Word -- addition and subtraction")
 {
-    SUBCASE("Flip")
-    {
-        Word w = 0xABCD;
-        CHECK_EQ(w.flip().to_int(), 0xCDAB);
-        CHECK_EQ(w.to_int(), 0xABCD);
-    }
-
     SUBCASE("Scalar increment")
     {
         Word w = 0x123;
@@ -215,8 +208,42 @@ TEST_CASE("Word -- arithmetic")
     }
 }
 
+TEST_CASE("Word -- product and modulo")
+{
+    SUBCASE("Product")
+    {
+        constexpr Word a = 0x0538;
+        constexpr Word b = 0x0018;
+
+        CHECK_EQ((a*b).to_int(), 0x7d40);
+    }
+
+    SUBCASE("Product with overflow")
+    {
+        constexpr Word a = 0x0538;
+        constexpr Word b = 0x0318;
+
+        CHECK_EQ((a*b).to_int(), 0x2540);
+    }
+
+    SUBCASE("Modulo")
+    {
+        constexpr Word a = 0x0538;
+        constexpr Word b = 0x0318;
+
+        CHECK_EQ((a%b).to_int(), 0x0220);
+    }
+}
+
 TEST_CASE("Word -- bitwise arithmetic")
 {
+    SUBCASE("Flip")
+    {
+        Word w = 0xABCD;
+        CHECK_EQ(w.flip().to_int(), 0xCDAB);
+        CHECK_EQ(w.to_int(), 0xABCD);
+    }
+
     SUBCASE("And")
     {
         constexpr Word w = 0xFF00;

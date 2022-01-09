@@ -40,10 +40,10 @@ void VirtualMachine::RunDebug()
         ExecuteNextInstruction();
         std::cout << std::endl;
 
-        std::ignore = std::cin.get();
+        // std::ignore = std::cin.get();
         for(std::size_t i=0; i < 50; ++i)
             std::cout << "\n";
-        // std::cout << std::flush; // clearing console
+        std::cout << std::flush; // clearing console
         ++ instr_count;
     }
 
@@ -282,6 +282,25 @@ constexpr void VirtualMachine::Execute<InstructionData::ADD>()
 {
     ExecuteBinaryOp([](Word const& b, Word const& c){ return b + c; });
 }
+
+/** mult: 10 a b c
+ *      store into <a> the product of <b> and <c> (modulo 32768)
+ */
+template<>
+constexpr void VirtualMachine::Execute<InstructionData::MULT>()
+{
+    ExecuteBinaryOp([](Word const& b, Word const& c){ return b * c; });
+}
+
+/** mod: 11 a b c
+ *      store into <a> the remainder of <b> divided by <c>
+ */
+template<>
+constexpr void VirtualMachine::Execute<InstructionData::MOD>()
+{
+    ExecuteBinaryOp([](Word const& b, Word const& c){ return b % c; });
+}
+
 
 /** call: 17 a
  *      write the address of the next instruction to the stack and jump to <a>

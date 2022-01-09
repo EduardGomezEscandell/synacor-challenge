@@ -46,6 +46,12 @@ public:
     constexpr Word& operator-=(raw_word_t jump) noexcept;
     constexpr Word operator-(Word const& other) const noexcept;
 
+    constexpr Word& operator*=(Word const& other) noexcept;
+    constexpr Word operator*(Word const& other) const noexcept;
+
+    constexpr Word& operator%=(Word const& other) noexcept;
+    constexpr Word operator%(Word const& other) const noexcept;
+
     constexpr Word& operator&=(Word const& other) noexcept;
     constexpr Word operator&(Word const& other) const noexcept;
     
@@ -180,6 +186,27 @@ constexpr Word Word::operator-(Word const& other) const noexcept
 {
     return Word(*this) -= other.to_int();
 }
+
+constexpr Word& Word::operator*=(Word const& other) noexcept
+{
+    return *this = (this->to_int() * other.to_int()) % max_word;
+}
+
+constexpr Word Word::operator*(Word const& other) const noexcept
+{
+    return Word(*this) *= other;
+}
+
+constexpr Word& Word::operator%=(Word const& other) noexcept
+{
+    return *this = (this->to_int() % other.to_int());
+}
+
+constexpr Word Word::operator%(Word const& other) const noexcept
+{
+    return Word(*this) %= other;
+}
+
 
 constexpr Word& Word::operator&=(Word const& other) noexcept
 {
