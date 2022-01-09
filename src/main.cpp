@@ -25,10 +25,6 @@ int main(int argc, char * argv[])
 
     vm.LoadMemory(program);
 
-    std::cout << ">> Memory at start:\n";
-    vm.memory().hex_dump(0, 5);
-
-    vm.Initialize();
     std::cout << ">> Program output:\n";
     vm.RunDebug();
 

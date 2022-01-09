@@ -41,6 +41,19 @@ public:
     constexpr Word& operator+=(raw_word_t jump) noexcept;
     constexpr Word operator+(Word const& other) const noexcept;
 
+    constexpr Word& operator--() noexcept;
+    constexpr Word operator--(int) noexcept;
+    constexpr Word& operator-=(raw_word_t jump) noexcept;
+    constexpr Word operator-(Word const& other) const noexcept;
+
+    constexpr Word& operator&=(Word const& other) noexcept;
+    constexpr Word operator&(Word const& other) const noexcept;
+    
+    constexpr Word& operator|=(Word const& other) noexcept;
+    constexpr Word operator|(Word const& other) const noexcept;
+
+    constexpr Word operator~() const noexcept;
+
     constexpr std::strong_ordering operator<=>(Word const& other) const noexcept;
     
     constexpr bool operator<(Word const& other) const noexcept = default;
@@ -62,16 +75,18 @@ public:
         return (static_cast<raw_word_t>(lo()) << 8) | hi();
     }
 
-    constexpr void set_raw(raw_word_t inp) noexcept
+    constexpr Word& set_raw(raw_word_t inp) noexcept
     {
         data[LO] = inp & 0x00FF;
         data[HI] = inp >> 8;
+        return *this;
     }
     
-    constexpr void set_raw(raw_byte_t lo, raw_byte_t hi) noexcept
+    constexpr Word& set_raw(raw_byte_t lo, raw_byte_t hi) noexcept
     {
         data[LO] = lo;
         data[HI] = hi;
+        return *this;
     }
 
     constexpr raw_word_t to_int() const noexcept
@@ -129,6 +144,70 @@ constexpr Word Word::operator++(int) noexcept
 constexpr Word Word::operator+(Word const& other) const noexcept
 {
     return Word(*this) += other.to_int();
+}
+
+constexpr Word& Word::operator-=(const raw_word_t jump) noexcept
+{
+    const raw_byte_t jump_lo = jump & 0x00FF;
+    const raw_byte_t jump_hi = jump >> 8;
+
+    if(lo() < jump_lo)
+    {
+        --hi();
+    }
+
+    lo() -= jump_lo;
+    hi() -= jump_hi;
+
+    hi() %= (max_word>>8);
+
+    return *this;
+}
+
+constexpr Word& Word::operator--() noexcept
+{
+    return (*this) -= 1u;
+}
+
+constexpr Word Word::operator--(int) noexcept
+{
+    const Word copy = *this;
+    --(*this);
+    return copy;
+}
+
+constexpr Word Word::operator-(Word const& other) const noexcept
+{
+    return Word(*this) -= other.to_int();
+}
+
+constexpr Word& Word::operator&=(Word const& other) noexcept
+{
+    this->data[LO] &= other.data[LO];
+    this->data[HI] &= other.data[HI];
+    return *this;
+}
+
+constexpr Word Word::operator&(Word const& other) const noexcept
+{
+    return Word(*this) &= other;
+}
+
+constexpr Word& Word::operator|=(Word const& other) noexcept
+{
+    this->data[LO] |= other.data[LO];
+    this->data[HI] |= other.data[HI];
+    return *this;
+}
+
+constexpr Word Word::operator|(Word const& other) const noexcept
+{
+    return Word(*this) |= other;
+}
+
+constexpr Word Word::operator~() const noexcept
+{
+    return Word((~ this->to_int()) & (max_word-1));
 }
 
 constexpr std::strong_ordering Word::operator<=>(Word const& other) const noexcept

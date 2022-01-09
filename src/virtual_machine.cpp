@@ -4,22 +4,17 @@
 #include "word.h"
 
 #include <iostream>
-#include <memory>
 #include <sstream>
 
 void VirtualMachine::LoadMemory(program_file_t& source)
 {
-    m_memory.load(source);
+    m_memory.load(source, m_stack_ptr);
 }
-
-void VirtualMachine::Initialize()
-{
-    m_instr_ptr = 0;
-}
-
 
 void VirtualMachine::Run()
 {
+    InitializeStack();
+
     while(!m_flags.Is(Flags::HALTED))
     {
         ExecuteNextInstruction();
@@ -28,6 +23,8 @@ void VirtualMachine::Run()
 
 void VirtualMachine::RunDebug()
 {
+    InitializeStack();
+
     std::cout << "Running synacor VM in debug mode. Press any key after every step to continue" << std::endl;
     std::stringstream ss;
     m_ostream = &ss;
@@ -43,8 +40,10 @@ void VirtualMachine::RunDebug()
         ExecuteNextInstruction();
         std::cout << std::endl;
 
-        std::ignore = std::cin.get();
-        std::cout << "\f\f\f\n" << std::flush; // clearing console
+        // std::ignore = std::cin.get();
+        // for(std::size_t i=0; i < 50; ++i)
+            std::cout << "\n";
+        std::cout << std::flush; // clearing console
         ++ instr_count;
     }
     std::cout << ss.str() << std::endl;
@@ -73,6 +72,11 @@ void VirtualMachine::Print() const
     std::cout << "\nMemory around instruction pointer:\n";
     const std::size_t instr_ptr_row = m_instr_ptr.get().to_int() / 8;
     memory().hex_dump(instr_ptr_row, instr_ptr_row+2, m_instr_ptr.get().to_int());
+
+    std::cout << "\nStack:\n";
+    const std::size_t stack_base_ptr_row = m_stack_base_ptr.get().to_int() / 8;
+    const std::size_t stack_ptr_row = m_stack_ptr.get().to_int() / 8;
+    memory().hex_dump(stack_base_ptr_row, stack_ptr_row+1, m_stack_ptr.get().to_int());
     std::cout << std::endl;
 }
 
@@ -102,6 +106,35 @@ constexpr Word const& VirtualMachine::DecodeRegister(Word w) const
     return m_registers[w.lo()];
 }
 
+constexpr void VirtualMachine::InitializeStack() noexcept
+{
+    m_stack_base_ptr = Address((m_stack_ptr.get().to_int() / 8 + 1) * 8); // Starts at next line
+    m_stack_ptr = m_stack_base_ptr;
+}
+
+template<typename TOperator>
+constexpr void VirtualMachine::ExecuteBinaryOp(TOperator const& Op) noexcept
+{
+    Word& a = DecodeRegister(m_memory[++m_instr_ptr]);
+    const Word b = GetValue(m_memory[++m_instr_ptr]);
+    const Word c = GetValue(m_memory[++m_instr_ptr]);
+
+    a = Op(b,c);
+
+    ++m_instr_ptr;
+}
+
+template<typename TOperator>
+constexpr void VirtualMachine::ExecuteUnaryOp(TOperator const& Op) noexcept
+{
+    Word& a = DecodeRegister(m_memory[++m_instr_ptr]);
+    const Word b = GetValue(m_memory[++m_instr_ptr]);
+
+    a = Op(b);
+
+    ++m_instr_ptr;
+}
+
 template<>
 constexpr void VirtualMachine::Execute<InstructionData::HALT>()
 {
@@ -111,21 +144,37 @@ constexpr void VirtualMachine::Execute<InstructionData::HALT>()
 template<>
 constexpr void VirtualMachine::Execute<InstructionData::SET>()
 {
-    Word& r = DecodeRegister(m_memory[++m_instr_ptr]);
-    r = GetValue(m_memory[++m_instr_ptr]);
-    
+    ExecuteUnaryOp([](Word const& b) { return b; });
+}
+/** push: 2 a
+ *       push <a> onto the stack
+ */
+template<>
+constexpr void VirtualMachine::Execute<InstructionData::PUSH>()
+{
+    const Word a = GetValue(m_memory[++m_instr_ptr]);
+    m_memory[m_stack_ptr++] = a;
     ++m_instr_ptr;
 }
+
+/** pop: 3 a
+ *      remove the top element from the stack and write it into <a>; empty stack = error
+ */
+template<>
+constexpr void VirtualMachine::Execute<InstructionData::POP>()
+{
+    Word& a = DecodeRegister(m_memory[++m_instr_ptr]);
+    a = m_memory[--m_stack_ptr];
+    ++m_instr_ptr;
+}
+
 /** eq: 4 a b c
  *     set <a> to 1 if <b> is equal to <c>; set it to 0 otherwise
  */
 template<>
 constexpr void VirtualMachine::Execute<InstructionData::EQ>()
 {
-    Word& a = DecodeRegister(m_memory[++m_instr_ptr]);
-    const Word& b = GetValue(m_memory[++m_instr_ptr]);
-    const Word& c = GetValue(m_memory[++m_instr_ptr]);
-    a = (b == c);
+    ExecuteBinaryOp([](Word const& b, Word const& c){ return b == c; });
 }
 
 
@@ -135,10 +184,7 @@ constexpr void VirtualMachine::Execute<InstructionData::EQ>()
 template<>
 constexpr void VirtualMachine::Execute<InstructionData::GT>()
 {
-    Word& a = DecodeRegister(m_memory[++m_instr_ptr]);
-    const Word& b = GetValue(m_memory[++m_instr_ptr]);
-    const Word& c = GetValue(m_memory[++m_instr_ptr]);
-    a = (b > c);
+   ExecuteBinaryOp([](Word const& b, Word const& c){ return b > c; });
 }
 
 /** jmp: 6 a
@@ -185,16 +231,37 @@ constexpr void VirtualMachine::Execute<InstructionData::JF>()
     }
 }
 
+/**and: 12 a b c
+ *     stores into <a> the bitwise and of <b> and <c>
+ */
+template<>
+constexpr void VirtualMachine::Execute<InstructionData::AND>()
+{
+    ExecuteBinaryOp([](Word const& b, Word const& c){ return b & c; });
+}
+
+/**or: 13 a b c
+ *     stores into <a> the bitwise or of <b> and <c>
+ */
+template<>
+constexpr void VirtualMachine::Execute<InstructionData::OR>()
+{
+    ExecuteBinaryOp([](Word const& b, Word const& c){ return b | c; });
+}
+
+/**not: 14 a b
+ *     stores 15-bit bitwise inverse of <b> in <a>
+ */
+template<>
+constexpr void VirtualMachine::Execute<InstructionData::NOT>()
+{
+    ExecuteUnaryOp([](Word const& b) { return ~b; });
+} 
+
 template<>
 constexpr void VirtualMachine::Execute<InstructionData::ADD>()
 {
-    Word& r = DecodeRegister(m_memory[++m_instr_ptr]);
-    const Word arg1   = GetValue(m_memory[++m_instr_ptr]);
-    const Word arg2   = GetValue(m_memory[++m_instr_ptr]);
-
-    r = arg1 + arg2;
-
-    ++m_instr_ptr;
+    ExecuteBinaryOp([](Word const& b, Word const& c){ return b + c; });
 }
 
 template<>

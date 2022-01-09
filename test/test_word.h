@@ -165,4 +165,78 @@ TEST_CASE("Word -- arithmetic")
 
         CHECK_EQ(w + x, 0x1433);
     }
+
+    SUBCASE("Scalar decrement")
+    {
+        Word w = 0x123;
+        --w;
+        CHECK_EQ(w.to_int(), 0x122);
+        CHECK_EQ((w--).to_int(), 0x122);
+        CHECK_EQ(w.to_int(), 0x121);
+    }
+
+    SUBCASE("Scalar decrement with underflow")
+    {
+        Word w = 0x0000;
+        --w;
+        CHECK_EQ(w.to_int(), 0x7FFF);
+    }
+
+    SUBCASE("Scalar subtraction")
+    {
+        Word w = 0x123;
+        w -= 0x101;
+        CHECK_EQ(w.to_int(), 0x022);
+    }
+
+    SUBCASE("Scalar subtraction with underflow")
+    {
+        Word w = 0x1200;
+        w -= 0x0002;
+        CHECK_EQ(w.to_int(), 0x11FE);
+    }
+
+    SUBCASE("Word subtraction")
+    {
+        constexpr Word w = 0x4321;
+        constexpr Word x = 0x1111;
+
+        CHECK_EQ(w - x, 0x3210);
+        CHECK_EQ(w, 0x4321);
+        CHECK_EQ(x, 0x1111);
+    }
+
+    SUBCASE("Word subtraction with underflow")
+    {
+        constexpr Word w = 0x4321;
+        constexpr Word x = 0x01FF;
+
+        CHECK_EQ(w - x, 0x4122);
+    }
+}
+
+TEST_CASE("Word -- bitwise arithmetic")
+{
+    SUBCASE("And")
+    {
+        constexpr Word w = 0xFF00;
+        constexpr Word x = 0x1359;
+
+        CHECK_EQ((w & x).to_int(), 0x1300);
+    }
+
+    SUBCASE("Or")
+    {
+        constexpr Word w = 0xFF00;
+        constexpr Word x = 0x1359;
+
+        CHECK_EQ((w | x).to_int(), 0xFF59);
+    }
+
+    SUBCASE("Not")
+    {
+        constexpr Word w = 0x0000;
+
+        CHECK_EQ((~w).to_int(), 0x7FFF); // Remember: First bit is dead
+    }
 }

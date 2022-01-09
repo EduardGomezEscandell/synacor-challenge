@@ -12,12 +12,12 @@ public:
     using program_file_t = Memory::program_file_t;
 
     void LoadMemory(program_file_t& source);
-    void Initialize();
     void Run();
     void RunDebug();
 
     constexpr Memory const& memory() const noexcept {return m_memory; }
     void Print() const;
+
 
 private:
     constexpr void ExecuteNextInstruction();
@@ -46,10 +46,23 @@ private:
     template<InstructionData::OpCode TOp>
     constexpr void Execute();
 
+    template<typename TOperator>
+    constexpr void ExecuteBinaryOp(TOperator const& op) noexcept;
+
+    template<typename TOperator>
+    constexpr void ExecuteUnaryOp(TOperator const& op) noexcept;
+
+    /**
+     * @brief Sets the base and stack pointers to the first free row of memory
+     */
+    constexpr void InitializeStack() noexcept;
+
     static constexpr std::size_t num_registers = InstructionData::num_registers;
 
     Flags m_flags;
-    Address m_instr_ptr;
+    Address m_instr_ptr = 0;
+    Address m_stack_base_ptr = 0;
+    Address m_stack_ptr = 0;
     Memory m_memory;
     Word m_registers[num_registers];
     std::ostream * m_ostream = &std::cout;

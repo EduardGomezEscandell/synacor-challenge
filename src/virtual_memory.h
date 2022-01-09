@@ -58,9 +58,8 @@ public:
         std::fill(m_data.begin(), m_data.end(), static_cast<raw_word_t>(0));
     }
 
-    void load(program_file_t& source)
+    void load(program_file_t& source, Address& load_ptr)
     {
-        Address ptr;
         raw_byte_t lo;
         raw_byte_t hi;
         char val;
@@ -75,7 +74,7 @@ public:
 
             if(source.eof()) break;
             
-            dereference(ptr++).set_raw(lo, hi);
+            dereference(load_ptr++).set_raw(lo, hi);
         }
     };
 

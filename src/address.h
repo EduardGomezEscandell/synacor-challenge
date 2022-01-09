@@ -56,6 +56,29 @@ public:
         return copy;
     }
 
+    constexpr Address& operator-=(std::integral auto in) noexcept
+    {
+        m_internal -= in;
+        return *this;
+    }
+
+    constexpr Address operator-(std::integral auto in) noexcept
+    {
+        return Address(*this) -= in;
+    }
+
+    constexpr Address operator--() noexcept
+    {
+        return (*this) -= 1;
+    }
+
+    constexpr Address operator--(int) noexcept
+    {
+        const auto copy = *this;
+        --(*this);
+        return copy;
+    }
+
     constexpr std::strong_ordering operator<=>(Address const& other) const noexcept
     {
         return this->m_internal <=> other.m_internal;
