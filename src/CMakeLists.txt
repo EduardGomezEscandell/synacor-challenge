@@ -1,6 +1,8 @@
 add_library(synacor_vm_lib  address.h
                             flags.h
                             instruction.h
+                            serializer.h
+                            serializer.cpp
                             virtual_machine.h
                             virtual_machine.cpp
                             virtual_memory.h

@@ -2,9 +2,19 @@
 #include "address.h"
 #include "instruction.h"
 #include "word.h"
+#include "serializer.h"
 
+#include <fstream>
+#include <ios>
 #include <iostream>
 #include <sstream>
+#include <limits>
+
+#include <functional>
+#include <stdexcept>
+#include <unistd.h>
+#include <signal.h>
+
 
 void VirtualMachine::LoadMemory(program_file_t& source)
 {
@@ -13,6 +23,7 @@ void VirtualMachine::LoadMemory(program_file_t& source)
 
 void VirtualMachine::Run()
 {
+    InitializeSignalHandler();
     StackInit();
 
     while(!m_flags.Is(Flags::HALTED | Flags::ERROR))
@@ -23,6 +34,7 @@ void VirtualMachine::Run()
 
 void VirtualMachine::RunDebug()
 {
+    InitializeSignalHandler();
     StackInit();
 
     std::cout << "Running synacor VM in debug mode. Press any key after every step to continue" << std::endl;
@@ -454,4 +466,75 @@ constexpr void VirtualMachine::ExecuteNextInstruction()
         
         default:  return Execute<InstructionData::WRONG_OPCODE>();
     }
+}
+
+VirtualMachine::TextBuffer& operator>>(VirtualMachine::TextBuffer& tbuffer, Word& t)
+{
+    if(tbuffer.ptr == tbuffer.data.size())
+    {
+        tbuffer.data.clear();
+        std::getline(tbuffer.m_istream, tbuffer.data);
+        tbuffer.data.push_back('\n');
+        tbuffer.ptr = 0;
+    }
+    t.lo() = tbuffer.data[tbuffer.ptr++];
+    t.hi() = 0;
+    return tbuffer;
+}
+
+void VirtualMachine::InitializeSignalHandler()
+{
+    active_vm = this;
+
+    struct sigaction sigIntHandler;
+
+    sigIntHandler.sa_handler = sig_handle;
+    sigemptyset(&sigIntHandler.sa_mask);
+    sigIntHandler.sa_flags = 0;
+
+    sigaction(SIGINT, &sigIntHandler, NULL);
+}
+
+void VirtualMachine::sig_handle(int sig_id)
+{
+    switch (sig_id) {
+        case 2: break; // KEYBOARD INTERRUPT
+        default:
+            std::cout << "\nCaught signal " << sig_id << std::endl;
+            exit(EXIT_FAILURE);
+    }
+
+    std::cout << "\nCaught signal KEYBOARD_INTERRUPT" << std::endl;
+
+    const auto& vm = VirtualMachine::GetActiveVM();
+
+    std::cout << ">> Current state:\n";
+    vm->Print();
+
+    constexpr auto question = [](const std::string_view question)
+    {
+        std::cout << question; 
+        std::string a;
+        while(true)
+        {
+            std::cin >> a;
+            if(a == "y" || a=="yes") return true;
+            if(a == "n" || a=="no") return false;
+            std::cout << "Input not recognized. Please, answer y or n: ";
+        }
+    };
+
+    if(question("Do you wish to save the current state before terminating?"))
+    {
+        const std::string filename = "synacor_vm_dump.dmp";
+        std::ofstream outfile(filename, std::ios_base::binary);
+
+        Serializer::Write(outfile, vm);
+
+        std::cout << "Virtual machine state dumped into file: " << filename << std::endl;
+    }
+
+    std::cout << "Terminating" << std::endl;
+
+    exit(EXIT_FAILURE);
 }

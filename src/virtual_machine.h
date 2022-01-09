@@ -1,15 +1,31 @@
+#pragma once
+
+#include <cstdlib>
+#include <ostream>
+
 #include "address.h"
 #include "instruction.h"
 #include "flags.h"
 #include "virtual_memory.h"
-#include <ostream>
 
-#pragma once
+class Serializer;
 
 class VirtualMachine
 {
 public:
     using program_file_t = Memory::program_file_t;
+
+    class TextBuffer
+    {
+    public:
+        TextBuffer(std::istream& stream = std::cin) noexcept : m_istream(stream) {}
+        friend TextBuffer& operator>>(TextBuffer& tbuffer, Word& t);
+    private:
+        std::istream& m_istream;
+        std::string data;
+        std::size_t ptr = 0;
+
+    };
 
     void LoadMemory(program_file_t& source);
     void Run();
@@ -18,6 +34,7 @@ public:
     constexpr Memory const& memory() const noexcept {return m_memory; }
     void Print() const;
 
+    static VirtualMachine const* GetActiveVM() noexcept { return active_vm;}
 
 private:
     constexpr void ExecuteNextInstruction();
@@ -86,8 +103,14 @@ private:
 
     static constexpr std::size_t num_registers = InstructionData::num_registers;
 
+    TextBuffer m_input_buffer; // Stream that IN instruction uses as a buffer
+
+    static void sig_handle(int s);
+    void InitializeSignalHandler();
+
+
     Flags m_flags;                         // Flags indicating side-effects of instructions
-    Word m_registers[num_registers];       // General-purpose registers
+    std::array<Word, num_registers> m_registers;       // General-purpose registers
     Address m_instr_ptr = 0;               // Register containing the instruction pointer: points to the next instruction's opcode
     Address m_stack_base_ptr = 0;          // Register containing the base of the stack in memory
     Address m_stack_ptr = 0;               // Register containing the current top of the stack
@@ -95,28 +118,6 @@ private:
     Memory m_memory;                       // The RAM
     std::ostream * m_ostream = &std::cout; // Stream that OUT instruction ouputs to
 
-    class TextBuffer
-    {
-    public:
-        TextBuffer() noexcept {}
-
-        friend TextBuffer& operator>>(TextBuffer& tbuffer, Word& t)
-        {
-            if(tbuffer.ptr == tbuffer.data.size())
-            {
-                tbuffer.data.clear();
-                std::getline(std::cin, tbuffer.data);
-                tbuffer.data.push_back('\n');
-                tbuffer.ptr = 0;
-            }
-            t.lo() = tbuffer.data[tbuffer.ptr++];
-            t.hi() = 0;
-            return tbuffer;
-        }
-    
-    private:
-        std::string data;
-        std::size_t ptr = 0;
-
-    } m_input_buffer; // Stream that IN instruction uses as a buffer
+    friend class Serializer;
+    static inline VirtualMachine const* active_vm = NULL;
 };

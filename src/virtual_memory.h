@@ -16,6 +16,8 @@ class Memory
 {
     static constexpr raw_word_t address_space = Word::max_word;
 
+    friend class Serializer;
+    
     constexpr void AssertValidAddress(
         [[maybe_unused]] const raw_word_t raw_ptr) const noexcept
     {
@@ -48,6 +50,15 @@ class Memory
     {
         return dereference(ptr.get().to_int());
     }
+
+    constexpr auto begin() noexcept { return m_data.begin(); }
+    constexpr auto end() noexcept { return m_data.end(); }
+
+    constexpr auto cbegin() const noexcept { return m_data.cbegin(); }
+    constexpr auto cend() const noexcept { return m_data.cend(); }
+    
+    constexpr auto begin() const noexcept { return cbegin(); }
+    constexpr auto end() const noexcept { return cend(); }
 
 
 public:

@@ -1,5 +1,6 @@
 #include <cstdio>
 #include <fstream>
+
 #include "virtual_machine.h"
 #include "word.h"
 
