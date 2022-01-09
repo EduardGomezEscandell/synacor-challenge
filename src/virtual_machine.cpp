@@ -13,9 +13,9 @@ void VirtualMachine::LoadMemory(program_file_t& source)
 
 void VirtualMachine::Run()
 {
-    InitializeStack();
+    StackInit();
 
-    while(!m_flags.Is(Flags::HALTED))
+    while(!m_flags.Is(Flags::HALTED | Flags::ERROR))
     {
         ExecuteNextInstruction();
     }
@@ -23,7 +23,7 @@ void VirtualMachine::Run()
 
 void VirtualMachine::RunDebug()
 {
-    InitializeStack();
+    StackInit();
 
     std::cout << "Running synacor VM in debug mode. Press any key after every step to continue" << std::endl;
     std::stringstream ss;
@@ -40,12 +40,14 @@ void VirtualMachine::RunDebug()
         ExecuteNextInstruction();
         std::cout << std::endl;
 
-        // std::ignore = std::cin.get();
-        // for(std::size_t i=0; i < 50; ++i)
+        std::ignore = std::cin.get();
+        for(std::size_t i=0; i < 50; ++i)
             std::cout << "\n";
-        std::cout << std::flush; // clearing console
+        // std::cout << std::flush; // clearing console
         ++ instr_count;
     }
+
+    std::cout << "======================  DONE ======================\n";
     std::cout << ss.str() << std::endl;
 }
 
@@ -66,8 +68,10 @@ void VirtualMachine::Print() const
     }
 
     std::cout << "\nFlags:\n";
-    std::cout << "- HALTED: " << m_flags.Is(Flags::HALTED) << '\n';
-    std::cout << "- ERROR : " << m_flags.Is(Flags::ERROR) << '\n';
+    std::cout << "- HALTED   : " << m_flags.Is(Flags::HALTED) << '\n';
+    std::cout << "- ERROR    : " << m_flags.Is(Flags::ERROR) << '\n';
+    std::cout << "- BAD_INPUT: " << m_flags.Is(Flags::BAD_INPUT) << '\n';
+    std::cout << "- STACK_UF : " << m_flags.Is(Flags::STACK_UNDERFLOW) << '\n';
 
     std::cout << "\nMemory around instruction pointer:\n";
     const std::size_t instr_ptr_row = m_instr_ptr.get().to_int() / 8;
@@ -106,10 +110,25 @@ constexpr Word const& VirtualMachine::DecodeRegister(Word w) const
     return m_registers[w.lo()];
 }
 
-constexpr void VirtualMachine::InitializeStack() noexcept
+constexpr void VirtualMachine::StackInit() noexcept
 {
     m_stack_base_ptr = Address((m_stack_ptr.get().to_int() / 8 + 1) * 8); // Starts at next line
     m_stack_ptr = m_stack_base_ptr;
+}
+
+constexpr void VirtualMachine::StackPush(Word const& val) noexcept
+{
+    m_memory[m_stack_ptr++] = val;
+}
+
+constexpr Word VirtualMachine::StackPop() noexcept
+{
+    if(m_stack_ptr == m_stack_base_ptr)
+    {
+        m_flags.Set(Flags::STACK_UNDERFLOW | Flags::ERROR);
+    }
+
+    return m_memory[--m_stack_ptr];
 }
 
 template<typename TOperator>
@@ -153,7 +172,7 @@ template<>
 constexpr void VirtualMachine::Execute<InstructionData::PUSH>()
 {
     const Word a = GetValue(m_memory[++m_instr_ptr]);
-    m_memory[m_stack_ptr++] = a;
+    StackPush(a);
     ++m_instr_ptr;
 }
 
@@ -164,7 +183,7 @@ template<>
 constexpr void VirtualMachine::Execute<InstructionData::POP>()
 {
     Word& a = DecodeRegister(m_memory[++m_instr_ptr]);
-    a = m_memory[--m_stack_ptr];
+    a = StackPop();
     ++m_instr_ptr;
 }
 
@@ -263,6 +282,29 @@ constexpr void VirtualMachine::Execute<InstructionData::ADD>()
 {
     ExecuteBinaryOp([](Word const& b, Word const& c){ return b + c; });
 }
+
+/** call: 17 a
+ *      write the address of the next instruction to the stack and jump to <a>
+ */
+template<>
+constexpr void VirtualMachine::Execute<InstructionData::CALL>()
+{
+    const auto call_destination = Address(GetValue(m_memory[++m_instr_ptr]));
+    const auto return_destination = (++m_instr_ptr).get();
+    StackPush(return_destination);
+    m_instr_ptr = call_destination;
+}
+
+/** ret: 18
+ *      remove the top element from the stack and jump to it; empty stack = halt
+ */
+template<>
+constexpr void VirtualMachine::Execute<InstructionData::RET>()
+{
+    const auto return_destination = Address(StackPop());
+    m_instr_ptr = return_destination;
+}
+
 
 template<>
 void VirtualMachine::Execute<InstructionData::OUT>()

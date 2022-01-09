@@ -55,7 +55,10 @@ private:
     /**
      * @brief Sets the base and stack pointers to the first free row of memory
      */
-    constexpr void InitializeStack() noexcept;
+    constexpr void StackInit() noexcept;
+
+    constexpr void StackPush(Word const& val) noexcept;
+    constexpr Word StackPop() noexcept;
 
     static constexpr std::size_t num_registers = InstructionData::num_registers;
 

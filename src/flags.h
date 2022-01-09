@@ -1,36 +1,39 @@
 #include <cstdint>
+#include <concepts>
+
 class Flags
 {
-using flag_storage_t = std::int8_t;
-
 public:
-	enum flags_t : flag_storage_t
-	{
-		NONE   = 0x00,
-		HALTED = 0x01,
-		ERROR  = 0X02,
-		BAD_INPUT = 0x04
-	};
+    using flag_storage_t = std::uint8_t;
 
-	constexpr Flags(flags_t state = NONE)
-		: m_flags(state)
-	{};
+    enum flags_t : flag_storage_t
+    {
+        NONE            = 0b00000001,
+        HALTED          = 0b00000010,
+        ERROR           = 0b00000100,
+        BAD_INPUT       = 0b00001000,
+        STACK_UNDERFLOW = 0b00010000
+    };
 
-	constexpr void Set(flags_t const flag) noexcept
-	{
-		m_flags = m_flags | flag;
-	}
+    constexpr Flags(flag_storage_t state = NONE)
+        : m_flags(state)
+    {};
 
-	constexpr void UnSet(flags_t const flag) noexcept
-	{
-		m_flags = m_flags & (~flag);
-	}
+    constexpr void Set(flag_storage_t const flag) noexcept
+    {
+        m_flags = m_flags | flag;
+    }
 
-	constexpr bool Is(flags_t const flag) const noexcept
-	{
-		return (m_flags & flag) != 0;
-	}
+    constexpr void UnSet(flag_storage_t const flag) noexcept
+    {
+        m_flags = m_flags & (~flag);
+    }
+
+    constexpr bool Is(flag_storage_t const flag) const noexcept
+    {
+        return (m_flags & flag) != 0;
+    }
 
 private:
-	flag_storage_t m_flags;
+    flag_storage_t m_flags;
 };
