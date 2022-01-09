@@ -30,7 +30,7 @@ void VirtualMachine::RunDebug()
     m_ostream = &ss;
 
     std::size_t instr_count = 0;
-    while(!m_flags.Is(Flags::HALTED))
+    while(!m_flags.Is(Flags::HALTED | Flags::ERROR))
     {
         std::cout << "====================== STEP #" << instr_count << "======================\n";
         Print();
@@ -70,8 +70,9 @@ void VirtualMachine::Print() const
     std::cout << "\nFlags:\n";
     std::cout << "- HALTED   : " << m_flags.Is(Flags::HALTED) << '\n';
     std::cout << "- ERROR    : " << m_flags.Is(Flags::ERROR) << '\n';
-    std::cout << "- BAD_INPUT: " << m_flags.Is(Flags::BAD_INPUT) << '\n';
+    std::cout << "- BAD_INT  : " << m_flags.Is(Flags::BAD_INTEGER) << '\n';
     std::cout << "- STACK_UF : " << m_flags.Is(Flags::STACK_UNDERFLOW) << '\n';
+    std::cout << "- W_ON_LIT : " << m_flags.Is(Flags::WRITE_ON_LITERAL) << '\n';
 
     std::cout << "\nMemory around instruction pointer:\n";
     const std::size_t instr_ptr_row = m_instr_ptr.get().to_int() / 8;
@@ -84,30 +85,51 @@ void VirtualMachine::Print() const
     std::cout << std::endl;
 }
 
-constexpr Word const& VirtualMachine::GetValue(Word const& arg) const
+constexpr Word& VirtualMachine::DecodeRegisterUnsafe(Word const& w) noexcept
 {
-    if(InstructionData::to_wordtype(arg) == InstructionData::REGISTER)
+    return m_registers[w.lo()];
+}
+
+constexpr Word const& VirtualMachine::DecodeRegisterUnsafe(Word const& w) const noexcept
+{
+    return m_registers[w.lo()];
+}
+
+constexpr Word& VirtualMachine::DecodeRegister(Word& w)
+{
+    const auto wordtype = InstructionData::to_wordtype(w);
+    switch(wordtype)
     {
-        return DecodeRegister(arg);
-    } else {
-        return arg;
+        case InstructionData::REGISTER:
+            return DecodeRegisterUnsafe(w);
+
+        case InstructionData::LITERAL:
+            m_flags.Set(Flags::WRITE_ON_LITERAL | Flags::ERROR);
+            return m_nul_register;
+        
+        case InstructionData::INVALID:
+            m_flags.Set(Flags::BAD_INTEGER | Flags::ERROR);
+            return m_nul_register;
     }
+
+    m_flags.Set(Flags::ERROR);
+    return m_nul_register;
 }
 
-constexpr Word& VirtualMachine::DecodeRegister(Word w)
+constexpr Word const& VirtualMachine::GetValue(Word const& w)
 {
-#ifndef DNDEBUG
-    assert(InstructionData::to_wordtype(w) == InstructionData::REGISTER);
-#endif
-    return m_registers[w.lo()];
-}
+    auto wordtype = InstructionData::to_wordtype(w);
+    switch(wordtype)
+    {
+        case InstructionData::REGISTER: return DecodeRegisterUnsafe(w);
+        case InstructionData::LITERAL:  return w;
+        case InstructionData::INVALID:
+            m_flags.Set(Flags::BAD_INTEGER | Flags::ERROR);
+            return m_nul_register;
+    }
 
-constexpr Word const& VirtualMachine::DecodeRegister(Word w) const
-{
-#ifndef DNDEBUG
-    assert(InstructionData::to_wordtype(w) == InstructionData::REGISTER);
-#endif
-    return m_registers[w.lo()];
+    m_flags.Set(Flags::ERROR);
+    return m_nul_register;
 }
 
 constexpr void VirtualMachine::StackInit() noexcept
@@ -154,17 +176,24 @@ constexpr void VirtualMachine::ExecuteUnaryOp(TOperator const& Op) noexcept
     ++m_instr_ptr;
 }
 
+/** halt: 0
+ *      stop execution and terminate the program
+ */
 template<>
 constexpr void VirtualMachine::Execute<InstructionData::HALT>()
 {
     m_flags.Set(Flags::HALTED);
 }
 
+/** set: 1 a b
+ *     set register <a> to the value of <b>
+ */
 template<>
 constexpr void VirtualMachine::Execute<InstructionData::SET>()
 {
     ExecuteUnaryOp([](Word const& b) { return b; });
 }
+
 /** push: 2 a
  *       push <a> onto the stack
  */
@@ -250,6 +279,33 @@ constexpr void VirtualMachine::Execute<InstructionData::JF>()
     }
 }
 
+/** add: 9 a b c
+ *    assign into <a> the sum of <b> and <c> (modulo 32768)
+ */
+template<>
+constexpr void VirtualMachine::Execute<InstructionData::ADD>()
+{
+    ExecuteBinaryOp([](Word const& b, Word const& c){ return b + c; });
+}
+
+/** mult: 10 a b c
+ *      store into <a> the product of <b> and <c> (modulo 32768)
+ */
+template<>
+constexpr void VirtualMachine::Execute<InstructionData::MULT>()
+{
+    ExecuteBinaryOp([](Word const& b, Word const& c){ return b * c; });
+}
+
+/** mod: 11 a b c
+ *      store into <a> the remainder of <b> divided by <c>
+ */
+template<>
+constexpr void VirtualMachine::Execute<InstructionData::MOD>()
+{
+    ExecuteBinaryOp([](Word const& b, Word const& c){ return b % c; });
+}
+
 /**and: 12 a b c
  *     stores into <a> the bitwise and of <b> and <c>
  */
@@ -275,32 +331,35 @@ template<>
 constexpr void VirtualMachine::Execute<InstructionData::NOT>()
 {
     ExecuteUnaryOp([](Word const& b) { return ~b; });
-} 
-
-template<>
-constexpr void VirtualMachine::Execute<InstructionData::ADD>()
-{
-    ExecuteBinaryOp([](Word const& b, Word const& c){ return b + c; });
 }
 
-/** mult: 10 a b c
- *      store into <a> the product of <b> and <c> (modulo 32768)
+/** rmem: 15 a b
+ *      read memory at address <b> and write it to <a>
  */
 template<>
-constexpr void VirtualMachine::Execute<InstructionData::MULT>()
+constexpr void VirtualMachine::Execute<InstructionData::RMEM>()
 {
-    ExecuteBinaryOp([](Word const& b, Word const& c){ return b * c; });
+    Word& a = DecodeRegister(m_memory[++m_instr_ptr]);
+    const auto b = Address(GetValue(m_memory[++m_instr_ptr]));
+
+    a = m_memory[b];
+
+    ++m_instr_ptr;
 }
 
-/** mod: 11 a b c
- *      store into <a> the remainder of <b> divided by <c>
+/** wmem: 16 a b
+ *      write the value from <b> into memory at address <a>
  */
 template<>
-constexpr void VirtualMachine::Execute<InstructionData::MOD>()
+constexpr void VirtualMachine::Execute<InstructionData::WMEM>()
 {
-    ExecuteBinaryOp([](Word const& b, Word const& c){ return b % c; });
-}
+    const auto a = Address(GetValue(m_memory[++m_instr_ptr]));
+    const Word b = GetValue(m_memory[++m_instr_ptr]);
 
+    m_memory[a] = b;
+
+    ++m_instr_ptr;
+}
 
 /** call: 17 a
  *      write the address of the next instruction to the stack and jump to <a>
@@ -324,7 +383,9 @@ constexpr void VirtualMachine::Execute<InstructionData::RET>()
     m_instr_ptr = return_destination;
 }
 
-
+/** out: 19 a
+ *     write the character represented by ascii code <a> to the terminal
+ */
 template<>
 void VirtualMachine::Execute<InstructionData::OUT>()
 {
@@ -332,34 +393,31 @@ void VirtualMachine::Execute<InstructionData::OUT>()
     ++m_instr_ptr;
 }
 
+/** in: 20 a
+ *    read a character from the terminal and write its ascii code to <a>; it
+ *    can be assumed that once input starts, it will continue until a newline
+ *    is encountered; this means that you can safely read whole lines from the
+ *    keyboard and trust that they will be fully read
+ */
 template<>
 void VirtualMachine::Execute<InstructionData::IN>()
 {
-    const auto val = []()
-    {
-        raw_word_t x = 0;
-        std::cin >> x;
-        return x;
-    }();
-
-    if(val > Word::max_word)
-    {
-        m_flags.Set(Flags::ERROR);
-        m_flags.Set(Flags::BAD_INPUT);
-        Execute<InstructionData::HALT>();
-        return;
-    }
-
-    DecodeRegister(m_memory[++m_instr_ptr]).set_raw(val);
+    m_input_buffer >> DecodeRegister(m_memory[++m_instr_ptr]);
     ++m_instr_ptr;
 }
 
+/** noop: 21
+ *      no operation
+ */
 template<>
 constexpr void VirtualMachine::Execute<InstructionData::NOOP>()
 {
     ++m_instr_ptr;
 }
 
+/** wrong_opcode: 22 -- 0x7FFF
+ *      wrong opcode or instruction not implemented
+ */
 template<InstructionData::OpCode TOp>
 constexpr void VirtualMachine::Execute()
 {
@@ -394,6 +452,6 @@ constexpr void VirtualMachine::ExecuteNextInstruction()
         case InstructionData::IN:    return Execute<InstructionData::IN>();
         case InstructionData::NOOP:  return Execute<InstructionData::NOOP>();
         
-        default:  return Execute<InstructionData::FATAL_ERROR>();
+        default:  return Execute<InstructionData::WRONG_OPCODE>();
     }
 }

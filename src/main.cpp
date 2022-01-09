@@ -26,7 +26,7 @@ int main(int argc, char * argv[])
     vm.LoadMemory(program);
 
     std::cout << ">> Program output:\n";
-    vm.RunDebug();
+    vm.Run();
 
     std::cout << "\n>> VM exit state:\n";
     vm.Print();

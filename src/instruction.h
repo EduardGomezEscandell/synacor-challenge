@@ -32,7 +32,7 @@ public:
         OUT,
         IN,
         NOOP,
-        FATAL_ERROR
+        WRONG_OPCODE
     };
 
     enum WordType 
@@ -49,7 +49,7 @@ public:
         // Operations 100 -- FFFF are truncated to the previous two
         
 #ifndef DNDEBUG
-        if(word.hi() != 0) return FATAL_ERROR;
+        if(word.hi() != 0) return WRONG_OPCODE;
 #endif
 
         return static_cast<OpCode>(word.lo());
@@ -57,9 +57,10 @@ public:
 
     static constexpr WordType to_wordtype(Word const& word)
     {
-        if(word.hi() < 8) return LITERAL;
+        if(word.to_int() < Word::max_word) return LITERAL;
 
-        if(word.hi() == (Word::max_word>>8) && word.lo() < num_registers) return REGISTER;
+        const raw_word_t reg = word.to_int() - Word::max_word;
+        if(reg < num_registers) return REGISTER;
 
         return INVALID;
     }
@@ -90,7 +91,7 @@ public:
             case OUT         : return "OUT";
             case IN          : return "IN";
             case NOOP        : return "NOOP";
-            case FATAL_ERROR : return "FATAL_ERROR";
+            case WRONG_OPCODE : return "WRONG_OPCODE";
         }
         return "INVALID";
     }
