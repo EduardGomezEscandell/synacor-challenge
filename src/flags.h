@@ -1,9 +1,10 @@
+#pragma once
+
 #include <cstdint>
 #include <concepts>
 
-class Flags
+struct Flags
 {
-public:
     using flag_storage_t = std::uint8_t;
 
     enum flags_t : flag_storage_t
@@ -35,6 +36,5 @@ public:
         return (m_flags & flag) != 0;
     }
 
-private:
     flag_storage_t m_flags;
 };
