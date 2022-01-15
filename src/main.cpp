@@ -2,7 +2,8 @@
 #include <cstdlib>
 #include <fstream>
 
-#include "execution_wrapper.h"
+#include "virtual_machine.h"
+
 
 void Help()
 {
@@ -55,7 +56,15 @@ int main(int argc, char * argv[])
         return EXIT_FAILURE;
     }
 
-    ExecutionWrapper::Run(filename, debug_mode);
+    VirtualMachine vm;
+
+    auto program = VirtualMachine::program_file_t(filename, std::ios::binary);
+
+    vm.LoadMemory(program);
+    
+    if(debug_mode) vm.ToggleProcess<DebugProcess>();
+    
+    vm.Run();
 
     return EXIT_SUCCESS;
 }

@@ -1,14 +1,17 @@
 #pragma once
 
 #include <cstdlib>
+#include <istream>
 #include <ostream>
 #include <memory>
-#include <unordered_map>
+#include <sstream>
+#include <vector>
 
 #include "address.h"
 #include "instruction.h"
 #include "flags.h"
 #include "virtual_memory.h"
+#include "processes.h"
 
 class Serializer;
 
@@ -17,37 +20,49 @@ class VirtualMachine
 public:
     using program_file_t = Memory::program_file_t;
 
-    struct BaseProcess
-    {
-        BaseProcess(VirtualMachine & vm) : m_parent_vm(vm) { };
-        virtual bool operator()() = 0; // Returns true if it has to be removed. False otherwise
-        static inline std::string name = "BaseProcess";
-        virtual std::string const& Name() const noexcept = 0;
-    protected:
-        VirtualMachine& m_parent_vm;
-    };
-
-    class TextBuffer
+    class InputBuffer
     {
     public:
-        TextBuffer(std::istream& stream = std::cin) noexcept : m_istream(stream) {}
-        friend TextBuffer& operator>>(TextBuffer& tbuffer, Word& t);
+        InputBuffer(VirtualMachine& vm, std::istream& stream = std::cin) noexcept
+            : m_parent_vm(vm), m_istream(&stream) {}
+        friend InputBuffer& operator>>(InputBuffer& tbuffer, Word& t);
     private:
-        std::istream& m_istream;
+        VirtualMachine& m_parent_vm;
+        std::istream* m_istream;
         std::string data;
         std::size_t ptr = 0;
     };
 
-    template<typename TProcess>
-    void AttachProcess() { m_attached_processes.try_emplace(TProcess::name, std::make_unique<TProcess>(*this)); }
+    class OutputBuffer
+    {
+    public:
+        OutputBuffer(std::ostream& stream = std::cout) noexcept 
+            : m_ostream(&stream) {}
+        std::ostream* m_ostream;
+        
+        friend OutputBuffer& operator<<(OutputBuffer& buffer, auto const& t)
+        {
+            (*buffer.m_ostream) << t;
+            return buffer;
+        }
+    protected:
+    };
+
+    VirtualMachine(std::istream& is = std::cin, std::ostream& os = std::cout)
+        : m_input_buffer(*this, is), m_output_buffer(os)
+    {
+    }
     
     template<typename TProcess>
-    void ToggleProcess()
+    constexpr void ToggleProcess()
     {
-        auto it = m_attached_processes.find(TProcess::name);
+        auto it = std::find_if(m_attached_processes.begin(), m_attached_processes.end(), 
+            [](auto const& process_ptr) { return process_ptr->Name() == TProcess::name; }
+        );
+
         if(it == m_attached_processes.end())
         {
-            AttachProcess<TProcess>();
+            m_attached_processes.emplace_back(std::make_unique<TProcess>(*this));
         } else {
             m_attached_processes.erase(it);
         }
@@ -55,9 +70,14 @@ public:
 
     void LoadMemory(program_file_t& source);
     void Run();
-    void RunDebug();
+    void Pause();
 
-    constexpr Memory const& memory() const noexcept {return m_memory; }
+    constexpr auto& flags() noexcept { return m_flags; }
+    constexpr auto const& memory() const noexcept {return m_memory; }
+
+    constexpr auto& output_stream() noexcept { return m_output_buffer; }
+    constexpr auto& input_stream() noexcept { return m_input_buffer; }
+
     void Print() const;
 
 private:
@@ -127,7 +147,8 @@ private:
 
     static constexpr std::size_t num_registers = InstructionData::num_registers;
 
-    TextBuffer m_input_buffer; // Stream that IN instruction uses as a buffer
+    InputBuffer m_input_buffer;            // Stream that IN instruction uses as a buffer
+    OutputBuffer m_output_buffer;          // Stream that OUT instruction ouputs to
 
     Flags m_flags;                         // Flags indicating side-effects of instructions
     std::array<Word, num_registers> m_registers;       // General-purpose registers
@@ -136,11 +157,8 @@ private:
     Address m_stack_ptr = 0;               // Register containing the current top of the stack
     Word m_nul_register = 0;               // A register to read/write from when a worng adress is given.
     Memory m_memory;                       // The RAM
-    std::ostream * m_ostream = &std::cout; // Stream that OUT instruction ouputs to
 
     friend class Serializer;
-    friend class ExecutionWrapper;
 
-    std::unordered_map<std::string, std::unique_ptr<BaseProcess>> m_attached_processes;
-    bool paused = false;
+    std::vector<std::unique_ptr<BaseProcess>> m_attached_processes;
 };

@@ -1,7 +1,7 @@
 add_library(synacor_vm_lib  address.h
                             flags.h
-                            execution_wrapper.h
-                            execution_wrapper.cpp
+                            processes.h
+                            processes.cpp
                             instruction.h
                             serializer.h
                             serializer.cpp

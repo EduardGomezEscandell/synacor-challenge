@@ -37,7 +37,7 @@ void VirtualMachine::Run()
     {
         ExecuteNextInstruction();
 
-        map_erase_if(m_attached_processes, [](BaseProcess& process){ return process(); });
+        std::erase_if(m_attached_processes, [](auto& process_ptr){ return (*process_ptr)(); });
     }
 }
 
@@ -76,7 +76,10 @@ void VirtualMachine::Print() const
     std::cout << "\n\n";
 
     std::cout << "Attached processes:\n";
-    std::for_each(m_attached_processes.begin(), m_attached_processes.end(), [](auto const& pair){ std::cout << "- " << pair.second->Name() << '\n'; });
+    for(auto const& process_ptr : m_attached_processes) {
+        std::cout << "- " << process_ptr->Name() << '\n';;
+    }
+
     std::cout << std::endl;
 }
 
@@ -384,7 +387,7 @@ constexpr void VirtualMachine::Execute<InstructionData::RET>()
 template<>
 void VirtualMachine::Execute<InstructionData::OUT>()
 {
-    *m_ostream << GetValue(m_memory[++m_instr_ptr]).lo();
+    m_output_buffer << GetValue(m_memory[++m_instr_ptr]).lo();
     ++m_instr_ptr;
 }
 
@@ -451,16 +454,81 @@ constexpr void VirtualMachine::ExecuteNextInstruction()
     }
 }
 
-VirtualMachine::TextBuffer& operator>>(VirtualMachine::TextBuffer& tbuffer, Word& t)
+VirtualMachine::InputBuffer& operator>>(VirtualMachine::InputBuffer& buffer, Word& t)
 {
-    if(tbuffer.ptr == tbuffer.data.size())
+    if(buffer.ptr == buffer.data.size())
     {
-        tbuffer.data.clear();
-        std::getline(tbuffer.m_istream, tbuffer.data);
-        tbuffer.data.push_back('\n');
-        tbuffer.ptr = 0;
+        bool no_text = true;
+        while(no_text)
+        {
+            buffer.data.clear();
+            std::getline(*buffer.m_istream, buffer.data);
+
+            if(buffer.data == "~")
+            {
+                buffer.m_parent_vm.Pause();
+            } else {
+                no_text = false;
+            }
+        }
+        buffer.data.push_back('\n');
+        buffer.ptr = 0;
     }
-    t.lo() = tbuffer.data[tbuffer.ptr++];
+    t.lo() = buffer.data[buffer.ptr++];
     t.hi() = 0;
-    return tbuffer;
+    return buffer;
+}
+
+void VirtualMachine::Pause()
+{
+    std::cout << "\nExecution paused" << std::endl;
+
+    while(true)
+    {
+        std::cout << "pause_console$ ";
+        std::string answ;
+        std::getline(std::cin, answ);
+
+
+        if(answ == "debug" || answ == "d")
+        {
+            ToggleProcess<DebugProcess>();
+        }
+        else if(answ == "exit")
+        {
+            exit(EXIT_SUCCESS);
+        }
+        else if(answ == "halt")
+        {
+            flags().Set(Flags::HALTED | Flags::INTERRUPT);
+            break;
+        }
+        else if(answ == "help" || answ == "h")
+        {
+            std::cout << "Execution pause menu. Use any of the following:\n";
+            std::cout << "- debug      Enables/diables step-by-step debugging.\n";
+            std::cout << "- exit       Exits the program.\n";
+            std::cout << "- halt       Raises the HALT flag in the VM causing it to stop after the currently interrupted instruction is finished.\n";
+            std::cout << "- help       Prints this help screen\n";
+            std::cout << "- resume     Resumes execution.\n";
+            std::cout << "- save       Saves the state of the VM after the currently interrupted instruction is finished.\n";
+            std::cout << "- state      Dumps the contents of the VM onto the console.\n";
+        }
+        else if(answ == "resume" || answ == "r")
+        {
+            break;
+        }
+        else if(answ == "save" || answ == "s")
+        {
+            ToggleProcess<DumpContentsProcess>();
+        }
+        else if(answ == "state")
+        {
+            Print();
+        }
+        else
+        {
+            std::cout << "Unknown command. Write 'help' to see a list of available commands." << std::endl;
+        }
+    }
 }
